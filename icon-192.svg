@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#006994"/>
+      <stop offset="100%" stop-color="#003844"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0099aa" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#003844" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <!-- 背景（角丸四角） -->
+  <rect width="192" height="192" rx="36" fill="url(#bg)"/>
+  <!-- 水の揺らぎ -->
+  <ellipse cx="96" cy="140" rx="90" ry="45" fill="url(#water)"/>
+  <!-- 泡 -->
+  <circle cx="40" cy="55" r="5" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
+  <circle cx="60" cy="35" r="3" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+  <circle cx="150" cy="60" r="4" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>
+  <!-- メイン魚（クマノミ風） -->
+  <!-- 胴体 -->
+  <ellipse cx="96" cy="95" rx="38" ry="26" fill="#ff8c1a"/>
+  <!-- 白縞 -->
+  <ellipse cx="108" cy="95" rx="5" ry="26" fill="white" opacity="0.9"/>
+  <ellipse cx="88" cy="95" rx="4" ry="24" fill="white" opacity="0.9"/>
+  <ellipse cx="70" cy="95" rx="4" ry="20" fill="white" opacity="0.8"/>
+  <!-- 黒縁取り -->
+  <ellipse cx="108" cy="95" rx="5" ry="26" fill="none" stroke="black" stroke-width="1.5"/>
+  <ellipse cx="88" cy="95" rx="4" ry="24" fill="none" stroke="black" stroke-width="1.2"/>
+  <!-- 尾びれ -->
+  <polygon points="58,78 42,68 50,95 42,122 58,112" fill="#ff8c1a"/>
+  <line x1="58" y1="78" x2="42" y2="68" stroke="black" stroke-width="1.2"/>
+  <line x1="58" y1="112" x2="42" y2="122" stroke="black" stroke-width="1.2"/>
+  <!-- 目 -->
+  <circle cx="122" cy="88" r="7" fill="white"/>
+  <circle cx="124" cy="88" r="4" fill="#1a1a2e"/>
+  <circle cx="126" cy="86" r="2" fill="white"/>
+  <!-- 背びれ -->
+  <polygon points="90,69 100,55 115,66" fill="#ff8c1a"/>
+  <!-- コイン -->
+  <circle cx="148" cy="130" r="14" fill="#ffd166" stroke="#c8a400" stroke-width="2"/>
+  <text x="148" y="135" font-size="14" text-anchor="middle" font-weight="bold" fill="#8B6914">G</text>
+  <!-- タイトル文字 -->
+  <text x="96" y="175" font-size="11" text-anchor="middle" fill="#ffd166" font-weight="bold" font-family="sans-serif">トロピカル出荷場</text>
+</svg>

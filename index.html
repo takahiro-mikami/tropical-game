@@ -1,0 +1,2648 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="トロピカル出荷場">
+<meta name="theme-color" content="#006d77">
+<meta name="description" content="熱帯魚を育てて出荷！億万長者を目指す放置ゲーム">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-512.svg">
+<link rel="icon" href="icon-192.svg" type="image/svg+xml">
+<title>🐠 トロピカル出荷場 ～熱帯魚で億万長者～</title>
+<style>
+  /* 全体スタイル */
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
+    background: linear-gradient(180deg, #003844 0%, #006d77 100%);
+    color: #fff;
+  }
+  /* ゲーム全体コンテナ */
+  #gameContainer {
+    position: relative; width: 100vw; height: 100vh;
+    overflow: hidden;
+  }
+  /* ===== 上部ステータスバー ===== */
+  #topBar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+    display: flex; flex-direction: column; gap: 5px;
+    padding: 10px 12px 18px;
+    background: linear-gradient(180deg, rgba(0,8,20,0.97) 72%, rgba(0,8,20,0) 100%);
+    pointer-events: none;
+  }
+  .top-row {
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(0,35,58,0.85);
+    border: 1.5px solid #ffd166;
+    border-radius: 10px;
+    padding: 6px 12px;
+    backdrop-filter: blur(4px);
+  }
+  .top-label { color: #ffd166; font-size: 12px; font-weight: bold; }
+  .top-value { color: #fff; font-size: 18px; font-weight: bold; }
+  .top-value.plus { color: #06d6a0; }
+  /* ===== モーダル・ショップ用ボタン ===== */
+  .btn {
+    pointer-events: auto;
+    background: linear-gradient(180deg, #ff9f1c, #ff6b35);
+    border: 2px solid #ffd166;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 14px;
+    box-shadow: 0 3px 0 #c44d20, 0 4px 8px rgba(0,0,0,0.3);
+    transition: transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #c44d20; }
+  .btn:disabled { background: #555; box-shadow: none; cursor: not-allowed; opacity: 0.6; }
+  /* Canvas */
+  #gameCanvas {
+    display: block;
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(180deg, #0099aa 0%, #006d77 60%, #003844 100%);
+    cursor: crosshair;
+  }
+  /* ===== 水槽状態バー ===== */
+  #statusBar {
+    position: absolute; left: 0; right: 0; z-index: 10;
+    background: rgba(0,18,32,0.93);
+    border-top: 1.5px solid rgba(6,174,213,0.35);
+    padding: 5px 14px 6px;
+    pointer-events: none;
+  }
+  #tankLabel { font-size: 10px; color: #06aed5; margin-bottom: 3px; font-weight: bold; }
+  #tankBarWrap {
+    position: relative; height: 16px;
+    background: rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden;
+  }
+  #tankBarFill {
+    height: 100%; border-radius: 8px; width: 10%;
+    background: linear-gradient(90deg, #06aed5, #06ff9d);
+    transition: width 0.4s;
+  }
+  #tankBarText {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    font-size: 11px; color: #fff; font-weight: bold;
+  }
+  /* ===== 下部ナビゲーション ===== */
+  #bottomNav {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 10;
+    display: flex; justify-content: space-around; align-items: flex-end;
+    padding: 8px 4px 10px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    background: linear-gradient(0deg, rgba(0,8,20,0.98) 60%, rgba(0,8,20,0) 100%);
+    gap: 4px;
+  }
+  .nav-btn {
+    pointer-events: auto;
+    background: linear-gradient(180deg, #0e3f5a, #071e2e);
+    border: 2px solid #ffd166;
+    border-radius: 14px;
+    color: #fff; flex: 1; max-width: 80px;
+    padding: 8px 3px 6px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    cursor: pointer; position: relative;
+    box-shadow: 0 3px 0 #07131e, 0 4px 10px rgba(0,0,0,0.5);
+    transition: transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .nav-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #07131e; }
+  .btn-icon { font-size: 26px; line-height: 1.1; }
+  .btn-label { font-size: 10px; font-weight: bold; color: #ffd166; white-space: nowrap; }
+  .auto-badge {
+    position: absolute; top: -7px; right: -5px;
+    background: #c0392b; color: #fff; border-radius: 10px;
+    padding: 1px 5px; font-size: 9px; font-weight: bold;
+    border: 1.5px solid #fff;
+  }
+  .auto-badge.on { background: #27ae60; }
+  /* モーダル */
+  .modal {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    justify-content: center; align-items: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal.show { display: flex; }
+  .modal-content {
+    background: linear-gradient(180deg, #023e58, #011627);
+    border: 3px solid #ffd166;
+    border-radius: 20px;
+    padding: 20px;
+    max-width: 500px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  }
+  .modal-content h2 {
+    text-align: center;
+    color: #ffd166;
+    margin-bottom: 15px;
+    font-size: 22px;
+  }
+  .shop-item {
+    background: rgba(255,255,255,0.08);
+    border: 2px solid #06aed5;
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .shop-item .info { flex: 1; }
+  .shop-item .title { font-weight: bold; color: #ffd166; font-size: 15px; }
+  .shop-item .desc { font-size: 12px; color: #ccc; margin-top: 2px; }
+  .shop-item .level { font-size: 11px; color: #06aed5; margin-top: 2px; }
+  .close-btn {
+    display: block;
+    margin: 15px auto 0;
+  }
+  /* トースト通知 */
+  #toastContainer {
+    position: absolute;
+    top: 130px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+  .toast {
+    background: rgba(0, 70, 90, 0.9);
+    border: 2px solid #ffd166;
+    border-radius: 20px;
+    padding: 8px 16px;
+    color: #fff;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    animation: toastAnim 2s forwards;
+    font-size: 14px;
+  }
+  @keyframes toastAnim {
+    0% { opacity: 0; transform: translateY(-20px); }
+    15% { opacity: 1; transform: translateY(0); }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-30px); }
+  }
+  /* タイトル画面 */
+  #titleScreen {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    z-index: 200;
+    background: linear-gradient(180deg, #006d77, #003844);
+  }
+  #titleScreen h1 {
+    color: #ffd166;
+    font-size: 36px;
+    text-align: center;
+    text-shadow: 3px 3px 0 #c44d20, 0 0 20px rgba(255,209,102,0.5);
+    margin-bottom: 10px;
+    padding: 0 20px;
+  }
+  #titleScreen p {
+    color: #fff;
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 14px;
+    padding: 0 20px;
+  }
+  /* エンディング */
+  #endingScreen {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    display: none; flex-direction: column;
+    justify-content: center; align-items: center;
+    z-index: 200;
+    background: linear-gradient(180deg, #ffd166, #ff6b35);
+    color: #003844;
+    text-align: center;
+    padding: 20px;
+  }
+  #endingScreen h1 { font-size: 32px; margin-bottom: 10px; }
+  #endingScreen p { font-size: 18px; margin-bottom: 20px; }
+  /* お知らせバー */
+  #achievementBar {
+    position: absolute;
+    top: 125px; left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(90deg, #ffd166, #ff9f1c);
+    color: #003844;
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-weight: bold;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    z-index: 60;
+    display: none;
+    font-size: 14px;
+  }
+  /* 図鑑カード */
+  .fish-card {
+    background: rgba(255,255,255,0.07);
+    border: 2px solid #06aed5;
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .fish-card.locked { border-color: #444; opacity: 0.5; }
+  .fish-card .fish-emoji { font-size: 30px; min-width: 38px; text-align: center; }
+  .fish-card .fish-info { flex: 1; }
+  .fish-card .fish-name { font-weight: bold; color: #ffd166; font-size: 15px; }
+  .fish-card .fish-desc { font-size: 12px; color: #ccc; margin-top: 4px; line-height: 1.55; }
+  .fish-card .fish-meta { font-size: 11px; color: #06aed5; margin-top: 4px; }
+  /* レスポンシブ */
+  @media (max-width: 390px) {
+    .top-value { font-size: 14px; }
+    .btn-icon { font-size: 22px; }
+    .btn-label { font-size: 9px; }
+    #titleScreen h1 { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+<div id="gameContainer">
+  <!-- Canvas -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- 上部ステータス -->
+  <div id="topBar">
+    <div class="top-row">
+      <span class="top-label">💴 資金：</span>
+      <span class="top-value" id="moneyDisplay">100 G</span>
+    </div>
+    <div class="top-row">
+      <span class="top-label">📦 出荷予想額：</span>
+      <span class="top-value plus" id="expectedDisplay">+0 G</span>
+    </div>
+  </div>
+
+  <!-- サウンドボタン -->
+  <button id="soundToggle" onclick="toggleSound()" style="position:absolute;top:10px;right:10px;z-index:20;background:rgba(0,40,60,0.85);border:1.5px solid #ffd166;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;pointer-events:auto;color:#fff;padding:0;">🔊</button>
+
+  <!-- 水槽状態バー -->
+  <div id="statusBar">
+    <div id="tankLabel">🐠 水槽満タン度</div>
+    <div id="tankBarWrap">
+      <div id="tankBarFill"></div>
+      <span id="tankBarText">1/10</span>
+    </div>
+  </div>
+
+  <!-- 下部ナビゲーション -->
+  <div id="bottomNav">
+    <button class="nav-btn" id="feedBtn">
+      <span class="btn-icon">🍤</span>
+      <span class="btn-label">給餌</span>
+    </button>
+    <button class="nav-btn" id="shipBtn">
+      <span class="btn-icon">📦</span>
+      <span class="btn-label">出荷</span>
+    </button>
+    <button class="nav-btn" id="shopBtn">
+      <span class="btn-icon">🛒</span>
+      <span class="btn-label">ショップ</span>
+    </button>
+    <button class="nav-btn" id="figukuBtn">
+      <span class="btn-icon">🐠</span>
+      <span class="btn-label">魚コレ</span>
+    </button>
+    <button class="nav-btn" id="missionBtn">
+      <span class="btn-icon">📋</span>
+      <span class="btn-label">ミッション</span>
+      <span class="auto-badge" id="missionBadge" style="display:none;">!</span>
+    </button>
+    <button class="nav-btn" id="autoFeederToggle" style="display:none;">
+      <span class="btn-icon">🤖</span>
+      <span class="btn-label">自動給餌</span>
+      <span class="auto-badge" id="feederBadge">OFF</span>
+    </button>
+    <button class="nav-btn" id="autoShipperToggle" style="display:none;">
+      <span class="btn-icon">🚚</span>
+      <span class="btn-label">自動出荷</span>
+      <span class="auto-badge" id="shipperBadge">OFF</span>
+    </button>
+  </div>
+
+  <!-- 魚コレモーダル -->
+  <div class="modal" id="figukuModal">
+    <div class="modal-content">
+      <h2 id="figukuTitle">🐠 魚コレクション</h2>
+      <div style="display:flex;gap:5px;margin-bottom:12px;">
+        <button class="btn" id="tabFish"  style="flex:1;padding:6px 2px;font-size:12px;" onclick="openFiguku('fish')">🐠 魚</button>
+        <button class="btn" id="tabFeed"  style="flex:1;padding:6px 2px;font-size:12px;" onclick="openFiguku('feed')">🍤 餌</button>
+        <button class="btn" id="tabTank"  style="flex:1;padding:6px 2px;font-size:12px;" onclick="openFiguku('tank')">🪸 水槽</button>
+      </div>
+      <div id="figukuList"></div>
+      <button class="btn close-btn" id="closeFiguku">閉じる</button>
+    </div>
+  </div>
+
+  <!-- ミッションモーダル -->
+  <div class="modal" id="missionModal">
+    <div class="modal-content">
+      <h2>📋 ミッション</h2>
+      <p style="text-align:center;color:#aaa;font-size:12px;margin-bottom:12px;">クリアして報酬をゲット！</p>
+      <div id="missionList"></div>
+      <button class="btn close-btn" id="closeMission">閉じる</button>
+    </div>
+  </div>
+
+  <!-- 達成通知 -->
+  <div id="achievementBar"></div>
+
+  <!-- トーストコンテナ -->
+  <div id="toastContainer"></div>
+
+  <!-- ショップモーダル -->
+  <div class="modal" id="shopModal">
+    <div class="modal-content">
+      <h2>🛒 アクアリストショップ</h2>
+      <div id="shopList"></div>
+      <button class="btn close-btn" id="closeShop">閉じる (Esc)</button>
+    </div>
+  </div>
+
+  <!-- 破産モーダル -->
+  <div class="modal" id="gameOverModal">
+    <div class="modal-content" style="text-align:center;">
+      <h2>💸 破産しました...</h2>
+      <p>魚も金もなくなりました。もう一度挑戦しよう！</p>
+      <button class="btn close-btn" id="restartBtn">リスタート</button>
+    </div>
+  </div>
+
+  <!-- タイトル画面 -->
+  <div id="titleScreen">
+    <h1>🐠 トロピカル出荷場</h1>
+    <p>～熱帯魚で億万長者～<br><br>
+    水槽をクリックして餌をまき、<br>★が付いた成熟魚をクリックで出荷！<br>
+    累計100万Gで殿堂入り👑</p>
+    <button class="btn" id="startBtn" style="font-size:18px;padding:12px 30px;">▶ ゲーム開始</button>
+    <button class="btn" id="continueBtn" style="margin-top:10px;display:none;">続きから</button>
+  </div>
+
+  <!-- エンディング -->
+  <div id="endingScreen">
+    <h1>👑 アクア帝王 達成！</h1>
+    <p>累計1,000,000G到達！<br>あなたは出荷王です🎉</p>
+    <button class="btn" id="continueAfterEnd" style="font-size:18px;padding:12px 30px;">続けてプレイ</button>
+  </div>
+</div>
+
+<script>
+// ==========================================
+// 🐠 トロピカル出荷場 - メインゲームスクリプト
+// ==========================================
+
+// ==========================================
+// サウンドシステム (Web Audio API)
+// ==========================================
+let _ac = null;
+let soundOn = true;
+let bgmRunning = false;
+let _bgmOscs = [];
+
+function getAC() {
+  if (!_ac) { try { _ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
+  if (_ac && _ac.state === 'suspended') _ac.resume();
+  return _ac;
+}
+
+function playTone(freq, dur, type='sine', vol=0.22, delay=0) {
+  if (!soundOn) return;
+  const ac = getAC(); if (!ac) return;
+  try {
+    const osc = ac.createOscillator(), g = ac.createGain();
+    osc.connect(g); g.connect(ac.destination);
+    osc.type = type; osc.frequency.value = freq;
+    const t = ac.currentTime + delay;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    osc.start(t); osc.stop(t + dur + 0.05);
+  } catch(e) {}
+}
+
+function seClick()   { playTone(900, 0.04, 'sine', 0.08); }
+function seFeed()    { playTone(1400, 0.07, 'sine', 0.1); playTone(900, 0.1, 'sine', 0.06, 0.06); }
+function seShip()    { [523,659,784,1047].forEach((f,i) => playTone(f, 0.15, 'triangle', 0.2, i*0.06)); }
+function seBorn()    { playTone(880, 0.06, 'sine', 0.1); playTone(1100, 0.1, 'sine', 0.07, 0.05); }
+function seBuy()     { playTone(440, 0.08, 'triangle', 0.18); playTone(550, 0.12, 'triangle', 0.14, 0.07); }
+function seAchieve() { [392,523,659,784,1047].forEach((f,i) => playTone(f, 0.22, 'triangle', 0.25, i*0.1)); }
+
+function startBGM() {
+  if (bgmRunning || !soundOn) return;
+  const ac = getAC(); if (!ac) return;
+  bgmRunning = true;
+  [[55,0.07],[82,0.045],[110,0.03],[165,0.02]].forEach(([freq,vol]) => {
+    const osc = ac.createOscillator(), lfo = ac.createOscillator(), lfog = ac.createGain(), g = ac.createGain();
+    osc.type='sine'; osc.frequency.value=freq;
+    lfo.type='sine'; lfo.frequency.value=0.07+freq*0.0004; lfog.gain.value=freq*0.002;
+    lfo.connect(lfog); lfog.connect(osc.frequency);
+    g.gain.value=vol; osc.connect(g); g.connect(ac.destination);
+    osc.start(); lfo.start();
+    _bgmOscs.push(osc,lfo,g,lfog);
+  });
+  scheduleBubbleSE();
+}
+
+function stopBGM() {
+  _bgmOscs.forEach(n=>{ try{if(n.stop)n.stop();n.disconnect();}catch(e){} });
+  _bgmOscs=[]; bgmRunning=false;
+}
+
+function scheduleBubbleSE() {
+  if (!bgmRunning || !soundOn) return;
+  setTimeout(() => {
+    if (bgmRunning && soundOn) {
+      playTone(400+Math.random()*900, 0.04+Math.random()*0.06, 'sine', 0.03+Math.random()*0.03);
+      scheduleBubbleSE();
+    }
+  }, (2+Math.random()*5)*1000);
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  const btn = document.getElementById('soundToggle');
+  if (btn) btn.textContent = soundOn ? '🔊' : '🔇';
+  if (soundOn) startBGM(); else stopBGM();
+}
+
+// Canvas関連
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0;
+let UI_TOP = 115, UI_BOTTOM = 155;
+
+// キャンバスサイズ調整
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // statusBar を bottomNav の真上に配置
+  requestAnimationFrame(() => {
+    const nav = document.getElementById('bottomNav');
+    const bar = document.getElementById('statusBar');
+    if (nav && bar) {
+      const navH = nav.offsetHeight;
+      bar.style.bottom = navH + 'px';
+      UI_BOTTOM = navH + bar.offsetHeight + 10;
+    }
+    const top = document.getElementById('topBar');
+    if (top) UI_TOP = top.offsetHeight + 8;
+  });
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// ==========================================
+// 魚の種類定義
+// ==========================================
+const FISH_TYPES = [
+  { id: 'guppy',     name: 'グッピー',         emoji: '🐟', color: '#ff6b9d', color2: '#ffc857', accent: '#ffe066', unlock: 0,          price: 50,       growTime: 3,   size: 14,
+    desc: '水槽界のアイドル的存在。特に何の取り柄もないが、明るい色と愛嬌のある泳ぎで大人気。口癖は「なんとかなるっしょ！」。特技は増えること。夢は世界一かわいい魚になること。' },
+  { id: 'neon',      name: 'ネオンテトラ',      emoji: '💙', color: '#06aed5', color2: '#ff4757', accent: '#ffffff', unlock: 1500,       price: 200,      growTime: 7,   size: 16,
+    desc: '暗闇でも光る体が自慢の魚。夜の水槽でランニングしているところを何度も目撃されている。エネルギッシュすぎて寝ることを忘れがち。光るのは体質であって意図的なものではないと本人は言い張る。' },
+  { id: 'clown',     name: 'クマノミ',          emoji: '🟠', color: '#ff8c1a', color2: '#ffffff', accent: '#000000', unlock: 5000,       price: 600,      growTime: 11,  size: 18,
+    desc: 'イソギンチャクの中に住んでいたが、水槽に来てから家賃ゼロになって喜んでいる。映画俳優の夢を持っているが、セリフを覚えるのが苦手で毎回NGを出してしまう。撮影中に泣き出したことがある。' },
+  { id: 'angel',     name: 'エンゼルフィッシュ', emoji: '✨', color: '#f5f5f5', color2: '#1a1a2e', accent: '#ffd166', unlock: 15000,      price: 1500,     growTime: 16,  size: 26,
+    desc: '名前に「エンゼル」がついているが、実際の性格はかなり気が強い。他の魚を上から目線で見る癖がある。一番好きな言葉は「格が違う」。実はインスタのフォロワーが一番多い。' },
+  { id: 'jinmengyo', name: '人面魚',            emoji: '😶', color: '#f4a460', color2: '#cd8500', accent: '#ff9999', unlock: 45000,      price: 4500,     growTime: 22,  size: 24,
+    desc: '誰もが夢で一度は見たことがある禁断の魚。本人は普通の魚のつもりらしいが、その顔は間違いなく人間のそれである。話しかけると急に哲学的な話を始めるので注意が必要。目が合うと眠れなくなる。' },
+  { id: 'ningyo',    name: '人魚',              emoji: '🧜', color: '#7ec8e3', color2: '#2196f3', accent: '#ffd166', unlock: 150000,     price: 12000,    growTime: 30,  size: 30,
+    desc: '上半身は人間、下半身は魚の伝説の生き物。水中で歌うと気泡になってしまう悲劇。陸に上がりたいと常々思っているが、水槽から出たら死ぬので我慢している。口癖は「あの日見た陸の夕焼け」。' },
+  { id: 'richfish',  name: 'お金持ち魚',        emoji: '💰', color: '#ffd700', color2: '#ff8c00', accent: '#fffacd', unlock: 500000,     price: 35000,    growTime: 40,  size: 26,
+    desc: '生まれながらにして富豪の魚。体中から金のオーラを放ち、泳ぐだけでコインが湧き出る。口癖は「それ、いくら？」。他の魚を見下すが実はひとりが寂しい。夜中にこっそり泣いている。' },
+  { id: 'yankeefish',name: 'ヤンキー魚',        emoji: '🤜', color: '#2c2c54', color2: '#ff6b35', accent: '#ffd166', unlock: 1500000,    price: 100000,   growTime: 50,  size: 28,
+    desc: '水槽で一番ガラが悪い魚。仁義には厚く弱い魚にはめちゃくちゃ優しい。特攻服の模様が鱗に出ている。口は悪いが涙もろく、実はお母さん大好き。卒業文集の夢は「普通のサラリーマン」だった。' },
+  { id: 'koifish',   name: 'ガチ恋魚',          emoji: '💕', color: '#ff85a1', color2: '#ff3869', accent: '#ffe0e9', unlock: 5000000,    price: 300000,   growTime: 65,  size: 24,
+    desc: '飼い主に本気で恋をしている魚。ガラス越しにじっとこちらを見つめてくる。ご飯をくれるだけで幸せそうで、出荷されるときは「なんで...」という顔をする。出荷するほうがつらい。グッズを集めている。' },
+  { id: 'enmafish',  name: '閻魔魚',            emoji: '👹', color: '#c0392b', color2: '#6c1010', accent: '#ff6b35', unlock: 15000000,   price: 1000000,  growTime: 90,  size: 34,
+    desc: '地獄の底に存在する魚。死んだ魚の魚生を判断して地獄行きか天国行きかを決定する仕事をしている。怖い顔をしているが、実はめちゃくちゃ優しい。判決の99%は天国行きらしい。地獄は慢性的な人手不足。' },
+  { id: 'godfish',   name: '神魚',              emoji: '🌟', color: '#fffde7', color2: '#ffd700', accent: '#ffffff', unlock: 50000000,  price: 3000000,  growTime: 120, size: 36,
+    desc: '神様が魚の姿をとった存在。そのへんにいる魚とは格が違う。出荷するのは若干罰当たりだが、神様なので文句は言わない。というより全てを許している。「出荷されることも修行の一環じゃ」とのこと。' },
+  { id: 'dragon',    name: '竜',                emoji: '🐉', color: '#27ae60', color2: '#1a5c3a', accent: '#f1c40f', unlock: 150000000, price: 8000000,  growTime: 150, size: 44,
+    desc: '東洋の龍が魚の形をとった姿。普段は水槽の底でとぐろを巻いて寝ている。怒らせると雷を落とすので餌は必ず定時にあげること。宝珠を持っており、近くにいるとなんとなく運が上がる気がする。' },
+  { id: 'kingfish',  name: 'キング魚',          emoji: '👑', color: '#8e44ad', color2: '#5b2c6f', accent: '#ffd700', unlock: 500000000, price: 20000000, growTime: 200, size: 48,
+    desc: '全ての魚の頂点に立つ伝説の魚。クラウンをつけ、全ての魚を統率する。水槽に入れると他の魚が自然と整列する。出荷価格は桁違いだが、王を売るとは…まあビジネスだから仕方ない。「王の孤独」という詩集を出版している。' },
+];
+
+// ==========================================
+// 餌・水槽コレクションデータ
+// ==========================================
+const FEED_DESIGNS = [
+  { lv:0, name:'基本ペレット',      desc:'普通の餌。特に何もないが魚は喜んで食べる。開発費ゼロ。特技：消えること。' },
+  { lv:1, name:'高級ペレット',      desc:'オレンジ色に輝くペレット。成長速度がUP。なんかいい匂いがすると魚の口コミで評判。' },
+  { lv:2, name:'超高級ペレット',    desc:'特許取得済みの六角形フォルム。赤みがかった色が食欲をそそる。開発に3年かかった。' },
+  { lv:3, name:'深紅の輝石餌',      desc:'真っ赤に輝く神秘の餌。これを食べた魚は目が輝くという噂。「火炎を体内から感じる」と魚が証言。' },
+  { lv:4, name:'紫ダイヤ餌',        desc:'ダイヤモンド型の紫色の餌。魚同士で争奪戦になるほどの人気。宝石みたいでもったいない気もする。' },
+  { lv:5, name:'レインボー神餌',    desc:'7色に輝く星型の究極の餌。食べた魚は伝説になると言われている。一粒で1週間お腹いっぱいになる。' },
+];
+
+const TANK_DESIGNS = [
+  { minLv:0,  name:'基本水槽',       emoji:'🪣', bg:['#0a1628','#1a4a6e'], desc:'シンプルなガラス水槽。アクアリストの第一歩。ここから億万長者への道が始まる。砂と海藻が懐かしい。' },
+  { minLv:2,  name:'トロピカル水槽', emoji:'🌊', bg:['#006994','#00bfff'], desc:'南国の海をイメージした水槽。カラフルな海藻とヒトデが彩る。眺めているだけで夏休み気分。' },
+  { minLv:4,  name:'サンゴ礁水槽',   emoji:'🪸', bg:['#1a6b8a','#48c9b0'], desc:'珊瑚礁を再現した豪華な水槽。色とりどりのサンゴが美しい。維持費も美しい金額がかかる。' },
+  { minLv:6,  name:'深海水槽',       emoji:'🌑', bg:['#000520','#001440'], desc:'漆黒の深海を再現した神秘的な水槽。発光する謎の粒子が幻想的に光る。底が見えなくて怖い。' },
+  { minLv:8,  name:'空中水槽',       emoji:'☁️', bg:['#5ec8f5','#b8e4f5'], desc:'なぜか空に浮いている水槽。雲の間を魚が泳ぐ非現実的な光景。物理法則については聞かないでほしい。' },
+  { minLv:9,  name:'雲上水槽',       emoji:'🌅', bg:['#2c0057','#ffd166'], desc:'夕焼けの雲の上に浮かぶ幻想的な水槽。天国みたいな景色。龍が現れても驚かないようにしよう。' },
+  { minLv:10, name:'宇宙水槽',       emoji:'🚀', bg:['#000010','#0a0020'], desc:'宇宙空間に浮かぶ究極の水槽。星と惑星に囲まれて魚が泳ぐ。もう何も怖くない。地球が小さく見える。' },
+];
+
+// ==========================================
+// ミッション定義
+// ==========================================
+const MISSIONS = [
+  { id:'m01', title:'🐣 稚魚デビュー',      desc:'はじめて魚を出荷する',                   check:()=>game.shipped>=1,                              reward:500 },
+  { id:'m02', title:'📦 小さな出荷屋',      desc:'10回出荷する',                            check:()=>game.shipped>=10,                             reward:3000 },
+  { id:'m03', title:'💪 中堅アクアリスト',  desc:'100回出荷する',                           check:()=>game.shipped>=100,                            reward:30000 },
+  { id:'m04', title:'🌊 初めての千G',        desc:'累計1,000G稼ぐ',                         check:()=>game.total>=1000,                             reward:1000 },
+  { id:'m05', title:'💸 一万長者',           desc:'累計10,000G稼ぐ',                        check:()=>game.total>=10000,                            reward:5000 },
+  { id:'m06', title:'💰 百万長者',           desc:'累計1,000,000G稼ぐ',                     check:()=>game.total>=1000000,                          reward:100000 },
+  { id:'m07', title:'🏆 億万長者',           desc:'累計100,000,000G稼ぐ',                   check:()=>game.total>=100000000,                        reward:10000000 },
+  { id:'m08', title:'🌌 兆を超えた者',      desc:'累計1,000,000,000,000G稼ぐ',             check:()=>game.total>=1000000000000,                    reward:100000000000 },
+  { id:'m09', title:'🏠 水槽拡張',          desc:'水槽を1回以上拡張する',                  check:()=>(game.upgrades.tankLv||0)>=1,                 reward:3000 },
+  { id:'m10', title:'🍽️ グルメ魚',          desc:'高級餌を購入する',                        check:()=>(game.upgrades.feedLv||0)>=1,                 reward:2000 },
+  { id:'m11', title:'🤖 自動化の先駆者',    desc:'自動給餌機を購入する',                    check:()=>!!game.upgrades.autoFeeder,                   reward:10000 },
+  { id:'m12', title:'😶 禁断の出会い',      desc:'人面魚と出会う',                          check:()=>game.fishSeen.includes('jinmengyo'),          reward:50000 },
+  { id:'m13', title:'🧜 伝説の人魚',        desc:'人魚と出会う',                            check:()=>game.fishSeen.includes('ningyo'),             reward:150000 },
+  { id:'m14', title:'💰 お金持ちと友達',    desc:'お金持ち魚と出会う',                      check:()=>game.fishSeen.includes('richfish'),           reward:500000 },
+  { id:'m15', title:'👹 閻魔と対面',        desc:'閻魔魚と出会う',                          check:()=>game.fishSeen.includes('enmafish'),           reward:5000000 },
+  { id:'m16', title:'🐉 龍に出会う',        desc:'竜と出会う',                              check:()=>game.fishSeen.includes('dragon'),             reward:10000000 },
+  { id:'m17', title:'👑 王者と握手',        desc:'キング魚と出会う',                        check:()=>game.fishSeen.includes('kingfish'),           reward:50000000 },
+  { id:'m18', title:'📖 全種コンプ',        desc:'全13種の魚と出会う',                      check:()=>game.fishSeen.length>=13,                     reward:100000000 },
+];
+
+// デフォルトのupgradesを取得
+function getDefaultUpgrades() {
+  return {
+    feedLv: 0,
+    tankLv: 0,
+    heaterLv: 0,
+    fishUnlock: 0,
+    autoFeeder: false,
+    autoShipper: false,
+  };
+}
+
+// デフォルトの自動化ON/OFF状態（購入後にユーザーが切替できる）
+function getDefaultAutoSettings() {
+  return {
+    autoFeederEnabled: true,
+    autoShipperEnabled: true,
+  };
+}
+
+function getDefaultAchievements() {
+  return { a1000:false, a10000:false, a100000:false, a1000000:false };
+}
+
+// ==========================================
+// ゲーム状態
+// ==========================================
+let game = {
+  money: 100,
+  total: 0,
+  shipped: 0,
+  fish: [],
+  foods: [],
+  bubbles: [],
+  particles: [],
+  maxFish: 10,
+  upgrades: getDefaultUpgrades(),
+  autoSettings: getDefaultAutoSettings(),
+  autoFeedTimer: 0,
+  autoShipTimer: 0,
+  breedTimer: 0,
+  achievements: getDefaultAchievements(),
+  fishSeen: [],
+  missionsDone: {},
+  running: false,
+};
+
+// ==========================================
+// アップグレード定義
+// ==========================================
+const UPGRADES = [
+  { id: 'feedLv',    name: '高級餌', maxLv: 5, desc: '成長速度+20%/段階',
+    cost: (lv)=> Math.floor(200 * Math.pow(2.2, lv)) },
+  { id: 'tankLv',    name: '水槽拡張', maxLv: 20, desc: '魚の最大数+50/段階（最大1010匹）',
+    cost: (lv)=> Math.floor(500 * Math.pow(1.65, lv)) },
+  { id: 'heaterLv',  name: 'ヒーター', maxLv: 5, desc: '繁殖速度UP',
+    cost: (lv)=> Math.floor(800 * Math.pow(2, lv)) },
+  { id: 'fishUnlock',name: '高級熱帯魚解放', maxLv: 12, desc: '次のランクの魚を解放',
+    cost: (lv)=> [1500,5000,15000,45000,150000,500000,1500000,5000000,15000000,50000000,150000000,500000000][lv] || 999999999 },
+  { id: 'autoFeeder',name: '自動給餌機', maxLv: 1, desc: '自動で餌を投下 (購入後ON/OFF切替可)',
+    cost: ()=> 5000 },
+  { id: 'autoShipper',name: '自動出荷機', maxLv: 1, desc: '水槽満タンになったら一括出荷 (購入後ON/OFF切替可)',
+    cost: ()=> 10000 },
+];
+
+// ==========================================
+// 魚種別カスタム描画関数
+// ==========================================
+// 共通: かわいい目（プルプル光るアニメ風）
+function drawCuteEye(ctx, s) {
+  // 白目
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(s*0.55, -s*0.15, s*0.26, 0, Math.PI*2);
+  ctx.fill();
+  // 黒目
+  ctx.fillStyle = '#1a1a2e';
+  ctx.beginPath();
+  ctx.arc(s*0.6, -s*0.12, s*0.16, 0, Math.PI*2);
+  ctx.fill();
+  // 光（キラッ）
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(s*0.66, -s*0.2, s*0.08, 0, Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(s*0.55, -s*0.05, s*0.04, 0, Math.PI*2);
+  ctx.fill();
+}
+
+// 1. グッピー - 丸っこくてカラフルな尾びれが特徴
+function drawGuppy(ctx, s, tailWave, type) {
+  // 尾びれ（扇形・カラフル）
+  ctx.fillStyle = type.color2;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.7, 0);
+  ctx.quadraticCurveTo(-s*1.6, -s*0.9 + tailWave*s, -s*1.4, -s*0.5);
+  ctx.quadraticCurveTo(-s*1.7, 0, -s*1.4, s*0.5);
+  ctx.quadraticCurveTo(-s*1.6, s*0.9 + tailWave*s, -s*0.7, 0);
+  ctx.fill();
+  // 尾びれの模様
+  ctx.fillStyle = type.accent;
+  ctx.beginPath();
+  ctx.arc(-s*1.1, -s*0.3 + tailWave*s*0.5, s*0.15, 0, Math.PI*2);
+  ctx.arc(-s*1.1, s*0.3 + tailWave*s*0.5, s*0.15, 0, Math.PI*2);
+  ctx.fill();
+  // 胴体（丸い）
+  const grad = ctx.createRadialGradient(0, -s*0.2, 0, 0, 0, s);
+  grad.addColorStop(0, '#fff5f9');
+  grad.addColorStop(0.4, type.color);
+  grad.addColorStop(1, type.color2);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, s*1.0, s*0.7, 0, 0, Math.PI*2);
+  ctx.fill();
+  // ほっぺ
+  ctx.fillStyle = 'rgba(255,100,150,0.5)';
+  ctx.beginPath();
+  ctx.arc(s*0.3, s*0.2, s*0.18, 0, Math.PI*2);
+  ctx.fill();
+}
+
+// 2. ネオンテトラ - 細長くて光るライン
+function drawNeon(ctx, s, tailWave, type) {
+  // 尾びれ（透明感のあるV字）
+  ctx.fillStyle = type.color2;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.7, 0);
+  ctx.lineTo(-s*1.5, -s*0.5 + tailWave*s);
+  ctx.lineTo(-s*1.2, 0);
+  ctx.lineTo(-s*1.5, s*0.5 + tailWave*s);
+  ctx.closePath();
+  ctx.fill();
+  // 胴体（細長い）
+  ctx.fillStyle = '#1a3a4a';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, s*1.1, s*0.45, 0, 0, Math.PI*2);
+  ctx.fill();
+  // 光るブルーライン（ネオン）
+  ctx.fillStyle = type.color;
+  ctx.shadowColor = type.color;
+  ctx.shadowBlur = 8;
+  ctx.fillRect(-s*0.9, -s*0.1, s*1.7, s*0.15);
+  ctx.shadowBlur = 0;
+  // 赤いライン
+  ctx.fillStyle = type.color2;
+  ctx.fillRect(-s*0.3, s*0.1, s*0.9, s*0.12);
+}
+
+// 3. クマノミ - オレンジ×白縞
+function drawClown(ctx, s, tailWave, type) {
+  // 尾びれ
+  ctx.fillStyle = type.color;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.7, 0);
+  ctx.lineTo(-s*1.4, -s*0.7 + tailWave*s);
+  ctx.lineTo(-s*1.2, 0);
+  ctx.lineTo(-s*1.4, s*0.7 + tailWave*s);
+  ctx.closePath();
+  ctx.fill();
+  // 尾びれ縁取り（黒）
+  ctx.strokeStyle = type.accent;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  // 胴体（オレンジ）
+  ctx.fillStyle = type.color;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, s*1.05, s*0.7, 0, 0, Math.PI*2);
+  ctx.fill();
+  // 白い縞（3本）→黒縁取り
+  ctx.fillStyle = type.color2;
+  ctx.strokeStyle = type.accent;
+  ctx.lineWidth = 1.2;
+  [s*0.4, -s*0.05, -s*0.5].forEach(x => {
+    ctx.beginPath();
+    ctx.ellipse(x, 0, s*0.13, s*0.7, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
+  });
+  // 背びれ・腹びれ（小さく）
+  ctx.fillStyle = type.color;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.2, -s*0.6);
+  ctx.lineTo(0, -s*0.95);
+  ctx.lineTo(s*0.3, -s*0.55);
+  ctx.fill();
+}
+
+// 4. エンゼルフィッシュ - 三角形ボディと長いヒレ
+function drawAngel(ctx, s, tailWave, type) {
+  // 長い背びれ
+  ctx.fillStyle = type.color2;
+  ctx.beginPath();
+  ctx.moveTo(s*0.3, -s*0.4);
+  ctx.lineTo(s*0.1, -s*1.6 + tailWave*s*0.3);
+  ctx.lineTo(-s*0.3, -s*1.5);
+  ctx.lineTo(-s*0.5, -s*0.4);
+  ctx.fill();
+  // 長い腹びれ
+  ctx.beginPath();
+  ctx.moveTo(s*0.3, s*0.4);
+  ctx.lineTo(s*0.1, s*1.6 + tailWave*s*0.3);
+  ctx.lineTo(-s*0.3, s*1.5);
+  ctx.lineTo(-s*0.5, s*0.4);
+  ctx.fill();
+  // 尾びれ
+  ctx.beginPath();
+  ctx.moveTo(-s*0.7, -s*0.3);
+  ctx.lineTo(-s*1.4, -s*0.6 + tailWave*s);
+  ctx.lineTo(-s*1.0, 0);
+  ctx.lineTo(-s*1.4, s*0.6 + tailWave*s);
+  ctx.lineTo(-s*0.7, s*0.3);
+  ctx.fill();
+  // 胴体（菱形気味）
+  ctx.fillStyle = type.color;
+  ctx.beginPath();
+  ctx.moveTo(s*1.0, 0);
+  ctx.lineTo(s*0.2, -s*0.7);
+  ctx.lineTo(-s*0.7, -s*0.3);
+  ctx.lineTo(-s*0.7, s*0.3);
+  ctx.lineTo(s*0.2, s*0.7);
+  ctx.closePath();
+  ctx.fill();
+  // 黒縞（3本）
+  ctx.fillStyle = type.color2;
+  [s*0.5, 0, -s*0.4].forEach(x => {
+    ctx.beginPath();
+    ctx.ellipse(x, 0, s*0.1, s*0.6, 0, 0, Math.PI*2);
+    ctx.fill();
+  });
+  // 金のアクセント
+  ctx.fillStyle = type.accent;
+  ctx.beginPath();
+  ctx.arc(0, s*0.3, s*0.05, 0, Math.PI*2);
+  ctx.fill();
+}
+
+// 5. ベタ - ひらひらした派手な尾びれ
+function drawBetta(ctx, s, tailWave, type) {
+  // 巨大な尾びれ（ひらひら）
+  ctx.fillStyle = type.color;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.5, 0);
+  for (let i = 0; i <= 12; i++) {
+    const a = Math.PI + (i / 12) * Math.PI;
+    const r = s * (1.6 + Math.sin(i*0.7 + tailWave*3) * 0.3);
+    ctx.lineTo(Math.cos(a)*r * 0.9, Math.sin(a)*r);
+  }
+  ctx.closePath();
+  ctx.fill();
+  // 尾びれの筋
+  ctx.strokeStyle = type.color2;
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 6; i++) {
+    ctx.beginPath();
+    ctx.moveTo(-s*0.5, 0);
+    const a = Math.PI + (i / 6) * Math.PI;
+    ctx.lineTo(Math.cos(a)*s*1.4, Math.sin(a)*s*1.4);
+    ctx.stroke();
+  }
+  // 長い背びれ
+  ctx.fillStyle = type.color2;
+  ctx.beginPath();
+  ctx.moveTo(s*0.4, -s*0.4);
+  ctx.quadraticCurveTo(-s*0.2, -s*1.4 + tailWave*s*0.5, -s*0.6, -s*0.3);
+  ctx.fill();
+  // 長い腹びれ
+  ctx.beginPath();
+  ctx.moveTo(s*0.4, s*0.4);
+  ctx.quadraticCurveTo(-s*0.2, s*1.4 + tailWave*s*0.5, -s*0.6, s*0.3);
+  ctx.fill();
+  // 胴体（流線形）
+  const grad = ctx.createLinearGradient(s, 0, -s, 0);
+  grad.addColorStop(0, type.accent);
+  grad.addColorStop(1, type.color);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, s*1.0, s*0.5, 0, 0, Math.PI*2);
+  ctx.fill();
+}
+
+// 6. ディスカス - 円盤型カラフル
+function drawDiscus(ctx, s, tailWave, type) {
+  // 小さい尾びれ（円盤型の魚なので尾は控えめ）
+  ctx.fillStyle = type.color2;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.9, -s*0.3);
+  ctx.lineTo(-s*1.3, -s*0.5 + tailWave*s);
+  ctx.lineTo(-s*1.1, 0);
+  ctx.lineTo(-s*1.3, s*0.5 + tailWave*s);
+  ctx.lineTo(-s*0.9, s*0.3);
+  ctx.fill();
+  // 背びれ
+  ctx.fillStyle = type.color2;
+  ctx.beginPath();
+  ctx.moveTo(s*0.6, -s*0.7);
+  ctx.lineTo(-s*0.6, -s*1.1);
+  ctx.lineTo(-s*0.9, -s*0.3);
+  ctx.fill();
+  // 腹びれ
+  ctx.beginPath();
+  ctx.moveTo(s*0.6, s*0.7);
+  ctx.lineTo(-s*0.6, s*1.1);
+  ctx.lineTo(-s*0.9, s*0.3);
+  ctx.fill();
+  // 胴体（円盤）
+  const grad = ctx.createRadialGradient(s*0.3, -s*0.3, 0, 0, 0, s);
+  grad.addColorStop(0, type.accent);
+  grad.addColorStop(0.5, type.color);
+  grad.addColorStop(1, type.color2);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(0, 0, s*0.95, 0, Math.PI*2);
+  ctx.fill();
+  // 縦縞（5本）
+  ctx.strokeStyle = type.color2;
+  ctx.lineWidth = 1.5;
+  for (let i = -2; i <= 2; i++) {
+    const x = i * s*0.3;
+    ctx.beginPath();
+    ctx.moveTo(x, -s*0.85);
+    ctx.lineTo(x, s*0.85);
+    ctx.stroke();
+  }
+}
+
+// 7. マンダリンフィッシュ - サイケな模様
+function drawMandarin(ctx, s, tailWave, type) {
+  // 尾びれ（オレンジ）
+  ctx.fillStyle = type.accent;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.7, 0);
+  ctx.lineTo(-s*1.3, -s*0.6 + tailWave*s);
+  ctx.lineTo(-s*1.0, 0);
+  ctx.lineTo(-s*1.3, s*0.6 + tailWave*s);
+  ctx.closePath();
+  ctx.fill();
+  // 胴体（緑ベース）
+  ctx.fillStyle = type.color;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, s*1.05, s*0.65, 0, 0, Math.PI*2);
+  ctx.fill();
+  // ピンクの波模様（複数）
+  ctx.strokeStyle = type.color2;
+  ctx.lineWidth = 2;
+  for (let y of [-s*0.3, 0, s*0.3]) {
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const x = -s*0.9 + i * s*0.2;
+      ctx.lineTo(x, y + Math.sin(i*1.5)*s*0.08);
+    }
+    ctx.stroke();
+  }
+  // オレンジドット
+  ctx.fillStyle = type.accent;
+  for (let pos of [[s*0.5, -s*0.3], [-s*0.2, s*0.3], [-s*0.5, -s*0.2], [s*0.2, s*0.4]]) {
+    ctx.beginPath();
+    ctx.arc(pos[0], pos[1], s*0.08, 0, Math.PI*2);
+    ctx.fill();
+  }
+  // 背びれ
+  ctx.fillStyle = type.accent;
+  ctx.beginPath();
+  ctx.moveTo(s*0.3, -s*0.55);
+  ctx.lineTo(-s*0.3, -s*1.0);
+  ctx.lineTo(-s*0.5, -s*0.5);
+  ctx.fill();
+}
+
+// 8. タツノオトシゴ - 立ち姿勢でくるんとした尾
+function drawSeahorse(ctx, s, tailWave, type) {
+  // 縦向きに描画するため回転
+  ctx.rotate(-Math.PI*0.15 + Math.sin(tailWave*0.5)*0.05);
+  // くるん尾（らせん）
+  ctx.strokeStyle = type.color;
+  ctx.lineWidth = s*0.35;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(0, s*0.5);
+  for (let i = 0; i < 20; i++) {
+    const t = i / 20;
+    const angle = t * Math.PI * 3 + tailWave*0.3;
+    const r = s * 0.5 * (1 - t * 0.8);
+    const cy = s*0.7 + t * s*0.6;
+    ctx.lineTo(Math.cos(angle) * r, cy);
+  }
+  ctx.stroke();
+  // 胴体（くねっと縦長）
+  ctx.fillStyle = type.color;
+  ctx.beginPath();
+  ctx.moveTo(0, -s*0.9);
+  ctx.quadraticCurveTo(s*0.5, -s*0.3, 0, s*0.5);
+  ctx.quadraticCurveTo(-s*0.5, -s*0.3, 0, -s*0.9);
+  ctx.fill();
+  // 縞模様
+  ctx.strokeStyle = type.color2;
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < 5; i++) {
+    const y = -s*0.7 + i*s*0.3;
+    ctx.beginPath();
+    ctx.moveTo(-s*0.3, y);
+    ctx.lineTo(s*0.3, y);
+    ctx.stroke();
+  }
+  // 頭（馬の鼻先）
+  ctx.fillStyle = type.color;
+  ctx.beginPath();
+  ctx.ellipse(s*0.15, -s*0.95, s*0.45, s*0.3, 0.3, 0, Math.PI*2);
+  ctx.fill();
+  // たてがみ
+  ctx.fillStyle = type.accent;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.2, -s*1.0);
+  ctx.lineTo(-s*0.4, -s*1.3);
+  ctx.lineTo(-s*0.1, -s*1.1);
+  ctx.lineTo(-s*0.2, -s*1.35);
+  ctx.lineTo(0.0, -s*1.1);
+  ctx.fill();
+  // 目（タツノオトシゴ用に頭の位置に再描画する）
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(s*0.25, -s*1.0, s*0.18, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(s*0.3, -s*0.98, s*0.1, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(s*0.34, -s*1.03, s*0.04, 0, Math.PI*2);
+  ctx.fill();
+  // 共通の目を上書きで隠したいので、目フラグ
+  ctx._skipEye = true;
+}
+
+// 9. アロワナ - 細長く銀色＋赤
+function drawArowana(ctx, s, tailWave, type) {
+  // 長い尾びれ
+  ctx.fillStyle = type.color2;
+  ctx.beginPath();
+  ctx.moveTo(-s*1.0, 0);
+  ctx.lineTo(-s*1.7, -s*0.5 + tailWave*s);
+  ctx.lineTo(-s*1.4, 0);
+  ctx.lineTo(-s*1.7, s*0.5 + tailWave*s);
+  ctx.fill();
+  // 背びれ（長い）
+  ctx.fillStyle = type.color2;
+  ctx.beginPath();
+  ctx.moveTo(s*0.8, -s*0.3);
+  ctx.lineTo(-s*0.8, -s*0.7);
+  ctx.lineTo(-s*1.0, -s*0.2);
+  ctx.fill();
+  // 腹びれ
+  ctx.beginPath();
+  ctx.moveTo(s*0.8, s*0.3);
+  ctx.lineTo(-s*0.8, s*0.7);
+  ctx.lineTo(-s*1.0, s*0.2);
+  ctx.fill();
+  // 胴体（細長く銀）
+  const grad = ctx.createLinearGradient(0, -s*0.4, 0, s*0.4);
+  grad.addColorStop(0, '#fff');
+  grad.addColorStop(0.5, type.color);
+  grad.addColorStop(1, '#a0a0a0');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, s*1.3, s*0.4, 0, 0, Math.PI*2);
+  ctx.fill();
+  // ウロコ（金）
+  ctx.fillStyle = type.color2;
+  for (let i = 0; i < 6; i++) {
+    const x = -s*0.8 + i * s*0.3;
+    ctx.beginPath();
+    ctx.arc(x, 0, s*0.08, 0, Math.PI*2);
+    ctx.fill();
+  }
+  // ひげ（2本）
+  ctx.strokeStyle = type.accent;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(s*1.2, s*0.15);
+  ctx.quadraticCurveTo(s*1.6, s*0.4, s*1.5, s*0.6 + tailWave*s*0.2);
+  ctx.moveTo(s*1.2, s*0.2);
+  ctx.quadraticCurveTo(s*1.7, s*0.5, s*1.7, s*0.7 + tailWave*s*0.2);
+  ctx.stroke();
+}
+
+// 10. マンタ - 巨大な平らな羽
+function drawManta(ctx, s, tailWave, type) {
+  // 巨大な羽（翼）
+  ctx.fillStyle = type.color;
+  ctx.beginPath();
+  ctx.moveTo(s*0.7, 0);
+  ctx.quadraticCurveTo(s*0.3, -s*1.2 + tailWave*s*0.3, -s*1.2, -s*0.8 + tailWave*s);
+  ctx.quadraticCurveTo(-s*0.5, -s*0.3, -s*0.3, 0);
+  ctx.quadraticCurveTo(-s*0.5, s*0.3, -s*1.2, s*0.8 + tailWave*s);
+  ctx.quadraticCurveTo(s*0.3, s*1.2 + tailWave*s*0.3, s*0.7, 0);
+  ctx.fill();
+  // 羽下面（明るい色）
+  ctx.fillStyle = type.color2;
+  ctx.beginPath();
+  ctx.moveTo(s*0.5, s*0.15);
+  ctx.quadraticCurveTo(0, s*0.8 + tailWave*s*0.2, -s*1.0, s*0.7 + tailWave*s);
+  ctx.quadraticCurveTo(-s*0.3, s*0.4, -s*0.2, s*0.15);
+  ctx.fill();
+  // 胴体（中央）
+  ctx.fillStyle = '#1a1a2e';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, s*0.8, s*0.3, 0, 0, Math.PI*2);
+  ctx.fill();
+  // 細長い尻尾
+  ctx.strokeStyle = type.color;
+  ctx.lineWidth = s*0.1;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.6, 0);
+  ctx.quadraticCurveTo(-s*1.3, tailWave*s*0.4, -s*1.8, tailWave*s*0.8);
+  ctx.stroke();
+  // 頭の角（ヒレ）
+  ctx.fillStyle = type.color;
+  ctx.beginPath();
+  ctx.moveTo(s*0.8, -s*0.15);
+  ctx.lineTo(s*1.1, -s*0.4);
+  ctx.lineTo(s*0.7, -s*0.05);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(s*0.8, s*0.15);
+  ctx.lineTo(s*1.1, s*0.4);
+  ctx.lineTo(s*0.7, s*0.05);
+  ctx.fill();
+  // 青のアクセント斑点
+  ctx.fillStyle = type.accent;
+  for (let pos of [[-s*0.3, -s*0.4], [0, -s*0.5], [s*0.2, -s*0.3]]) {
+    ctx.beginPath();
+    ctx.arc(pos[0], pos[1], s*0.08, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+// ユニーク魚 描画関数群
+
+// 人面魚 - 人間の顔を持つ魚
+function drawJinmengyo(ctx, s, tailWave, type) {
+  ctx.fillStyle = type.color2;
+  ctx.beginPath(); ctx.moveTo(-s*0.8,0); ctx.lineTo(-s*1.5,-s*0.6+tailWave*s); ctx.lineTo(-s*1.1,0); ctx.lineTo(-s*1.5,s*0.6+tailWave*s); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = type.color;
+  ctx.beginPath(); ctx.ellipse(0,0,s*1.1,s*0.82,0,0,Math.PI*2); ctx.fill();
+  // 眉毛
+  ctx.strokeStyle='#4a2c0a'; ctx.lineWidth=s*0.09; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(s*0.1,-s*0.44); ctx.quadraticCurveTo(s*0.35,-s*0.52,s*0.62,-s*0.44); ctx.stroke();
+  // 白目
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(s*0.36,-s*0.2,s*0.2,s*0.15,0,0,Math.PI*2); ctx.fill();
+  // 黒目
+  ctx.fillStyle='#1a0a00'; ctx.beginPath(); ctx.arc(s*0.39,-s*0.2,s*0.09,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(s*0.44,-s*0.26,s*0.04,0,Math.PI*2); ctx.fill();
+  // 鼻
+  ctx.strokeStyle='#4a2c0a'; ctx.lineWidth=s*0.07;
+  ctx.beginPath(); ctx.moveTo(s*0.52,s*0.02); ctx.lineTo(s*0.52,s*0.18); ctx.lineTo(s*0.40,s*0.20); ctx.stroke();
+  // 口（ニヤリ）
+  ctx.lineWidth=s*0.08;
+  ctx.beginPath(); ctx.arc(s*0.38,s*0.22,s*0.18,0.1,Math.PI-0.1); ctx.stroke();
+  ctx._skipEye = true;
+}
+
+// 人魚
+function drawNingyo(ctx, s, tailWave, type) {
+  // 魚の尾ひれ
+  ctx.fillStyle=type.color2;
+  ctx.beginPath(); ctx.moveTo(-s*0.2,s*0.5); ctx.quadraticCurveTo(-s*0.9,s*1.1+tailWave*s,-s*1.4,s*0.8+tailWave*s); ctx.quadraticCurveTo(-s*0.7,s*0.4,-s*0.2,s*0.2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-s*0.2,s*0.5); ctx.quadraticCurveTo(-s*0.6,s*1.4+tailWave*s,-s*1.1,s*1.2+tailWave*s); ctx.fill();
+  // 下半身（鱗）
+  ctx.fillStyle=type.color;
+  ctx.beginPath(); ctx.ellipse(s*0.0,s*0.25,s*0.32,s*0.5,0,0,Math.PI*2); ctx.fill();
+  // 上半身
+  ctx.fillStyle='#ffe0bd';
+  ctx.beginPath(); ctx.ellipse(s*0.25,-s*0.2,s*0.32,s*0.45,0,0,Math.PI*2); ctx.fill();
+  // 腕
+  ctx.strokeStyle='#ffe0bd'; ctx.lineWidth=s*0.14;
+  ctx.beginPath(); ctx.moveTo(s*0.55,-s*0.05); ctx.quadraticCurveTo(s*0.85,s*0.15,s*0.8,s*0.4); ctx.stroke();
+  // 髪
+  ctx.fillStyle='#c9a86c';
+  ctx.beginPath(); ctx.arc(s*0.22,-s*0.52,s*0.27,Math.PI,0); ctx.fill();
+  ctx.strokeStyle='#c9a86c'; ctx.lineWidth=s*0.17;
+  ctx.beginPath(); ctx.moveTo(-s*0.02,-s*0.52); ctx.quadraticCurveTo(-s*0.18,s*0.05,-s*0.08,s*0.3); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(s*0.44,-s*0.52); ctx.quadraticCurveTo(s*0.6,s*0.05,s*0.55,s*0.3); ctx.stroke();
+  // 顔
+  ctx.fillStyle='#ffe0bd'; ctx.beginPath(); ctx.arc(s*0.22,-s*0.52,s*0.21,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#555'; ctx.beginPath(); ctx.arc(s*0.12,-s*0.56,s*0.05,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(s*0.32,-s*0.56,s*0.05,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#c0705a'; ctx.lineWidth=s*0.05;
+  ctx.beginPath(); ctx.arc(s*0.22,-s*0.45,s*0.09,0.1,Math.PI-0.1); ctx.stroke();
+  ctx._skipEye=true;
+}
+
+// お金持ち魚
+function drawRichFish(ctx, s, tailWave, type) {
+  ctx.fillStyle=type.color2;
+  ctx.beginPath(); ctx.moveTo(-s*0.7,0); ctx.quadraticCurveTo(-s*1.5,-s*0.8+tailWave*s,-s*1.3,-s*0.4); ctx.quadraticCurveTo(-s*1.7,0,-s*1.3,s*0.4); ctx.quadraticCurveTo(-s*1.5,s*0.8+tailWave*s,-s*0.7,0); ctx.fill();
+  const g=ctx.createRadialGradient(s*0.2,-s*0.2,0,0,0,s*1.1);
+  g.addColorStop(0,'#fffacd'); g.addColorStop(0.5,type.color); g.addColorStop(1,type.color2);
+  ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(0,s*0.08,s*1.1,s*0.88,0,0,Math.PI*2); ctx.fill();
+  // ¥マーク
+  ctx.fillStyle='rgba(160,110,0,0.65)'; ctx.font=`bold ${s*0.75}px sans-serif`; ctx.textAlign='center';
+  ctx.fillText('¥',-s*0.1,s*0.25);
+  // モノクル
+  ctx.strokeStyle='#8B6914'; ctx.lineWidth=s*0.08;
+  ctx.beginPath(); ctx.arc(s*0.5,-s*0.22,s*0.22,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(s*0.72,-s*0.1); ctx.lineTo(s*0.85,s*0.05); ctx.stroke();
+  // シルクハット
+  ctx.fillStyle='#111'; ctx.fillRect(s*0.02,-s*1.18,s*0.78,s*0.12);
+  ctx.fillRect(s*0.12,-s*1.75,s*0.52,s*0.58);
+  ctx.fillStyle='#c8a400'; ctx.fillRect(s*0.05,-s*1.2,s*0.72,s*0.07);
+}
+
+// ヤンキー魚
+function drawYankeeFish(ctx, s, tailWave, type) {
+  ctx.fillStyle=type.color2;
+  ctx.beginPath(); ctx.moveTo(-s*0.8,0); ctx.lineTo(-s*1.5,-s*0.7+tailWave*s); ctx.lineTo(-s*1.15,0); ctx.lineTo(-s*1.5,s*0.7+tailWave*s); ctx.closePath(); ctx.fill();
+  ctx.fillStyle=type.color;
+  ctx.beginPath(); ctx.ellipse(0,0,s*1.1,s*0.75,0,0,Math.PI*2); ctx.fill();
+  // 特攻服の龍模様
+  ctx.strokeStyle='rgba(255,107,53,0.6)'; ctx.lineWidth=s*0.06;
+  ctx.beginPath(); ctx.moveTo(-s*0.5,-s*0.4); ctx.quadraticCurveTo(-s*0.1,-s*0.65,s*0.2,-s*0.3); ctx.quadraticCurveTo(s*0.55,s*0.05,s*0.3,s*0.45); ctx.stroke();
+  // リーゼント
+  ctx.fillStyle='#111';
+  ctx.beginPath(); ctx.moveTo(s*0.6,-s*0.55); ctx.quadraticCurveTo(s*0.2,-s*1.5,-s*0.3,-s*1.25); ctx.quadraticCurveTo(-s*0.05,-s*0.88,s*0.3,-s*0.72); ctx.quadraticCurveTo(s*0.5,-s*0.62,s*0.6,-s*0.55); ctx.fill();
+  // つり目
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(s*0.5,-s*0.12,s*0.19,s*0.12,-0.3,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(s*0.52,-s*0.12,s*0.08,0,Math.PI*2); ctx.fill();
+  // つり眉
+  ctx.strokeStyle='#111'; ctx.lineWidth=s*0.1; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(s*0.3,-s*0.3); ctx.lineTo(s*0.68,-s*0.26); ctx.stroke();
+  // 口（への字）
+  ctx.lineWidth=s*0.07;
+  ctx.beginPath(); ctx.moveTo(s*0.25,s*0.22); ctx.lineTo(s*0.45,s*0.15); ctx.lineTo(s*0.68,s*0.22); ctx.stroke();
+  ctx._skipEye=true;
+}
+
+// ガチ恋魚
+function drawKoiFish(ctx, s, tailWave, type) {
+  ctx.fillStyle=type.color2;
+  ctx.beginPath(); ctx.moveTo(-s*0.7,0); ctx.quadraticCurveTo(-s*1.2,-s*0.55+tailWave*s,-s*1.0,-s*0.25); ctx.quadraticCurveTo(-s*1.6,0,-s*1.0,s*0.25); ctx.quadraticCurveTo(-s*1.2,s*0.55+tailWave*s,-s*0.7,0); ctx.fill();
+  const g2=ctx.createRadialGradient(s*0.1,-s*0.1,0,0,0,s); g2.addColorStop(0,'#fff5f8'); g2.addColorStop(1,type.color);
+  ctx.fillStyle=g2; ctx.beginPath(); ctx.ellipse(0,0,s*1.05,s*0.75,0,0,Math.PI*2); ctx.fill();
+  // ハート目
+  function heart(cx,cy,hs){
+    ctx.fillStyle='#ff1744'; ctx.beginPath();
+    ctx.moveTo(cx,cy+hs*0.3); ctx.quadraticCurveTo(cx-hs*0.6,cy-hs*0.2,cx-hs*0.3,cy-hs*0.5);
+    ctx.quadraticCurveTo(cx,cy-hs*0.8,cx,cy-hs*0.3); ctx.quadraticCurveTo(cx,cy-hs*0.8,cx+hs*0.3,cy-hs*0.5);
+    ctx.quadraticCurveTo(cx+hs*0.6,cy-hs*0.2,cx,cy+hs*0.3); ctx.fill();
+  }
+  heart(s*0.48,-s*0.2,s*0.24);
+  // ほっぺ
+  ctx.fillStyle='rgba(255,80,130,0.45)';
+  ctx.beginPath(); ctx.ellipse(s*0.38,s*0.22,s*0.22,s*0.13,0,0,Math.PI*2); ctx.fill();
+  // 頭上ハート
+  heart(s*0.3,-s*0.75,s*0.2);
+  ctx._skipEye=true;
+}
+
+// 閻魔魚
+function drawEnmaFish(ctx, s, tailWave, type) {
+  // 炎オーラ
+  ctx.fillStyle='rgba(255,80,0,0.25)';
+  for(let i=0;i<6;i++){ const a=(i/6)*Math.PI*2+tailWave; ctx.beginPath(); ctx.arc(Math.cos(a)*s*1.1,Math.sin(a)*s*0.9,s*0.38,0,Math.PI*2); ctx.fill(); }
+  // 尾
+  ctx.fillStyle=type.color2;
+  ctx.beginPath(); ctx.moveTo(-s*0.9,0); ctx.lineTo(-s*1.6,-s*0.7+tailWave*s); ctx.lineTo(-s*1.2,0); ctx.lineTo(-s*1.6,s*0.7+tailWave*s); ctx.closePath(); ctx.fill();
+  // 胴体
+  const g3=ctx.createRadialGradient(0,0,0,0,0,s*1.2); g3.addColorStop(0,'#e74c3c'); g3.addColorStop(1,type.color2);
+  ctx.fillStyle=g3; ctx.beginPath(); ctx.ellipse(0,0,s*1.2,s*0.9,0,0,Math.PI*2); ctx.fill();
+  // 怒り眉
+  ctx.strokeStyle='#111'; ctx.lineWidth=s*0.12; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(s*0.22,-s*0.38); ctx.lineTo(s*0.44,-s*0.52); ctx.lineTo(s*0.66,-s*0.38); ctx.stroke();
+  // 目
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(s*0.44,-s*0.18,s*0.22,s*0.14,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(s*0.46,-s*0.18,s*0.1,0,Math.PI*2); ctx.fill();
+  // への字口
+  ctx.strokeStyle='#111'; ctx.lineWidth=s*0.1;
+  ctx.beginPath(); ctx.moveTo(s*0.2,s*0.24); ctx.lineTo(s*0.44,s*0.16); ctx.lineTo(s*0.68,s*0.24); ctx.stroke();
+  // 閻魔の冠
+  ctx.fillStyle='#ffd700';
+  ctx.beginPath(); ctx.moveTo(-s*0.05,-s*0.85); ctx.lineTo(s*0.75,-s*0.85); ctx.lineTo(s*0.72,-s*1.1); ctx.lineTo(s*0.5,-s*0.92); ctx.lineTo(s*0.35,-s*1.22); ctx.lineTo(s*0.2,-s*0.92); ctx.lineTo(-s*0.02,-s*1.1); ctx.closePath(); ctx.fill();
+  ctx._skipEye=true;
+}
+
+// 神魚
+function drawGodFish(ctx, s, tailWave, type) {
+  // 輝きオーラ
+  const aura=ctx.createRadialGradient(0,0,s*0.4,0,0,s*2); aura.addColorStop(0,'rgba(255,255,180,0.5)'); aura.addColorStop(1,'rgba(255,255,100,0)');
+  ctx.fillStyle=aura; ctx.beginPath(); ctx.arc(0,0,s*2,0,Math.PI*2); ctx.fill();
+  // 光の筋
+  ctx.strokeStyle='rgba(255,248,150,0.55)'; ctx.lineWidth=s*0.045;
+  for(let i=0;i<8;i++){ const a=(i/8)*Math.PI*2+tailWave*0.05; ctx.beginPath(); ctx.moveTo(Math.cos(a)*s*0.8,Math.sin(a)*s*0.6); ctx.lineTo(Math.cos(a)*s*1.8,Math.sin(a)*s*1.4); ctx.stroke(); }
+  // 尾ひれ
+  ctx.fillStyle=type.color2; ctx.shadowColor='#ffd700'; ctx.shadowBlur=12;
+  ctx.beginPath(); ctx.moveTo(-s*0.7,0); ctx.quadraticCurveTo(-s*1.6,-s*0.8+tailWave*s,-s*1.4,-s*0.4); ctx.quadraticCurveTo(-s*1.8,0,-s*1.4,s*0.4); ctx.quadraticCurveTo(-s*1.6,s*0.8+tailWave*s,-s*0.7,0); ctx.fill(); ctx.shadowBlur=0;
+  // 胴体
+  const g4=ctx.createRadialGradient(s*0.2,-s*0.2,0,0,0,s*1.2); g4.addColorStop(0,'#ffffff'); g4.addColorStop(0.55,type.color); g4.addColorStop(1,type.color2);
+  ctx.fillStyle=g4; ctx.shadowColor='#ffd700'; ctx.shadowBlur=18;
+  ctx.beginPath(); ctx.ellipse(0,0,s*1.1,s*0.75,0,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+  // 光輪
+  ctx.strokeStyle='#ffd700'; ctx.lineWidth=s*0.1; ctx.shadowColor='#ffd700'; ctx.shadowBlur=10;
+  ctx.beginPath(); ctx.ellipse(s*0.3,-s*1.1,s*0.44,s*0.12,-0.15,0,Math.PI*2); ctx.stroke(); ctx.shadowBlur=0;
+}
+
+// 竜
+function drawDragon(ctx, s, tailWave, type) {
+  // 蛇体
+  ctx.strokeStyle=type.color; ctx.lineWidth=s*0.72; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.shadowColor=type.accent; ctx.shadowBlur=8;
+  ctx.beginPath(); ctx.moveTo(s*1.1,0); ctx.quadraticCurveTo(s*0.2,-s*0.5+tailWave*s*0.3,-s*0.4,0); ctx.quadraticCurveTo(-s*1.0,s*0.5+tailWave*s*0.3,-s*1.7,tailWave*s*0.5); ctx.stroke(); ctx.shadowBlur=0;
+  // 鱗ドット
+  ctx.fillStyle=type.color2;
+  for(let i=0;i<7;i++){ const t=i/6; const x=s*0.9-t*s*2.4; const y=Math.sin(t*Math.PI+tailWave)*s*0.28; ctx.beginPath(); ctx.arc(x,y,s*0.11,0,Math.PI*2); ctx.fill(); }
+  // 頭
+  ctx.fillStyle=type.color; ctx.shadowColor=type.accent; ctx.shadowBlur=4;
+  ctx.beginPath(); ctx.ellipse(s*1.1,0,s*0.52,s*0.42,0.15,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+  // 角
+  ctx.fillStyle=type.accent;
+  ctx.beginPath(); ctx.moveTo(s*0.95,-s*0.32); ctx.lineTo(s*0.75,-s*0.82); ctx.lineTo(s*1.1,-s*0.38); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(s*1.2,-s*0.34); ctx.lineTo(s*1.1,-s*0.8); ctx.lineTo(s*1.38,-s*0.4); ctx.fill();
+  // ひげ
+  ctx.strokeStyle=type.accent; ctx.lineWidth=s*0.06;
+  ctx.beginPath(); ctx.moveTo(s*1.6,s*0.1); ctx.quadraticCurveTo(s*2.0,-s*0.2,s*1.9,-s*0.5+tailWave*s*0.2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(s*1.6,s*0.15); ctx.quadraticCurveTo(s*2.1,s*0.3,s*2.0,s*0.6+tailWave*s*0.2); ctx.stroke();
+  // 炎
+  ctx.fillStyle='rgba(255,100,0,0.75)';
+  ctx.beginPath(); ctx.moveTo(s*1.62,s*0.06); ctx.quadraticCurveTo(s*2.0,-s*0.1+tailWave*s*0.3,s*2.25,-s*0.2+tailWave*s*0.5); ctx.quadraticCurveTo(s*1.9,s*0.2,s*1.62,s*0.06); ctx.fill();
+  // 目
+  ctx.fillStyle='#ffd700'; ctx.beginPath(); ctx.arc(s*1.38,-s*0.08,s*0.12,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(s*1.4,-s*0.08,s*0.06,0,Math.PI*2); ctx.fill();
+  ctx._skipEye=true;
+}
+
+// キング魚
+function drawKingFish(ctx, s, tailWave, type) {
+  // 豪華尾ひれ
+  ctx.fillStyle=type.color2;
+  ctx.beginPath(); ctx.moveTo(-s*0.7,0);
+  for(let i=0;i<=5;i++){ const a=Math.PI*0.55+(i/5)*Math.PI*0.9; const r=s*(1.85+Math.sin(i*1.1+tailWave*2)*0.18); ctx.lineTo(Math.cos(a)*r*0.88,Math.sin(a)*r); }
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=type.accent; ctx.lineWidth=s*0.07; ctx.stroke();
+  // マント
+  ctx.fillStyle='#7b0000';
+  ctx.beginPath(); ctx.moveTo(s*0.3,-s*0.5); ctx.quadraticCurveTo(-s*0.45,-s*0.3,-s*0.8,s*0.4); ctx.quadraticCurveTo(-s*0.3,s*0.7,s*0.3,s*0.5); ctx.fill();
+  ctx.strokeStyle=type.accent; ctx.lineWidth=s*0.06;
+  ctx.beginPath(); ctx.moveTo(s*0.3,-s*0.5); ctx.quadraticCurveTo(-s*0.45,-s*0.3,-s*0.8,s*0.4); ctx.stroke();
+  // 胴体
+  const g5=ctx.createRadialGradient(s*0.1,-s*0.1,0,0,0,s*1.1); g5.addColorStop(0,'#c39bd3'); g5.addColorStop(1,type.color2);
+  ctx.fillStyle=g5; ctx.beginPath(); ctx.ellipse(0,0,s*1.1,s*0.8,0,0,Math.PI*2); ctx.fill();
+  // 王冠
+  ctx.fillStyle=type.accent;
+  ctx.beginPath(); ctx.moveTo(-s*0.08,-s*0.75); ctx.lineTo(s*0.78,-s*0.75); ctx.lineTo(s*0.74,-s*1.08); ctx.lineTo(s*0.52,-s*0.88); ctx.lineTo(s*0.35,-s*1.24); ctx.lineTo(s*0.2,-s*0.88); ctx.lineTo(-s*0.04,-s*1.08); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#8B6914'; ctx.lineWidth=s*0.05; ctx.stroke();
+  // 宝石
+  ctx.fillStyle='#e74c3c'; ctx.beginPath(); ctx.arc(s*0.35,-s*1.03,s*0.09,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#3498db'; ctx.beginPath(); ctx.arc(s*0.1,-s*0.88,s*0.065,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(s*0.6,-s*0.88,s*0.065,0,Math.PI*2); ctx.fill();
+  // 目
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(s*0.5,-s*0.14,s*0.2,s*0.13,-0.2,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#1a0050'; ctx.beginPath(); ctx.arc(s*0.52,-s*0.14,s*0.09,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(s*0.57,-s*0.19,s*0.04,0,Math.PI*2); ctx.fill();
+  ctx._skipEye=true;
+}
+
+const FISH_DRAWERS = {
+  guppy: drawGuppy,
+  neon: drawNeon,
+  clown: drawClown,
+  angel: drawAngel,
+  jinmengyo: drawJinmengyo,
+  ningyo: drawNingyo,
+  richfish: drawRichFish,
+  yankeefish: drawYankeeFish,
+  koifish: drawKoiFish,
+  enmafish: drawEnmaFish,
+  godfish: drawGodFish,
+  dragon: drawDragon,
+  kingfish: drawKingFish,
+};
+
+// ==========================================
+// 魚クラス
+// ==========================================
+class Fish {
+  constructor(typeIndex, x, y) {
+    this.typeIndex = typeIndex;
+    this.type = FISH_TYPES[typeIndex];
+    this.x = x;
+    this.y = y;
+    this.vx = (Math.random() - 0.5) * 0.5;
+    this.vy = 0;
+    this.dir = this.vx >= 0 ? 1 : -1;
+    this.growth = 0; // 0~1
+    this.growTime = this.type.growTime;
+    this.swimPhase = Math.random() * Math.PI * 2;
+    this.tailPhase = 0;
+    this.size = this.type.size * 0.5; // 稚魚は小さい
+    this.breedCooldown = 1 + Math.random() * 1;
+  }
+  update(dt) {
+    // 成長処理
+    const targetSize = this.type.size * (0.5 + 0.5 * this.growth);
+    this.size += (targetSize - this.size) * 0.02;
+    
+    // 遊泳AI - sin波で揺らぐ
+    this.swimPhase += dt * 2;
+    this.tailPhase += dt * 8;
+    this.vy = Math.sin(this.swimPhase) * 0.3;
+    
+    // たまに方向転換
+    if (Math.random() < 0.005) {
+      this.dir *= -1;
+    }
+    this.vx += this.dir * 0.02;
+    this.vx *= 0.95;
+    this.vx = Math.max(-2.5, Math.min(2.5, this.vx));
+    
+    this.x += this.vx;
+    this.y += this.vy;
+    
+    // 画面端で反転（UIエリアを避ける）
+    const margin = 30;
+    if (this.x < margin) { this.x = margin; this.dir = 1; }
+    if (this.x > W - margin) { this.x = W - margin; this.dir = -1; }
+    if (this.y < UI_TOP) this.y = UI_TOP;
+    if (this.y > H - UI_BOTTOM) this.y = H - UI_BOTTOM;
+    
+    // 繁殖クールダウン減少
+    if (this.growth >= 1) {
+      this.breedCooldown -= dt;
+    }
+  }
+  draw(ctx) {
+    const s = this.size;
+    const tailWave = Math.sin(this.tailPhase) * 0.3;
+    const many = game.fish.length > 80;
+
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.scale(this.dir, 1);
+
+    if (many) {
+      // 大量描画時は簡易表示
+      ctx.fillStyle = this.type.color;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, s*1.1, s*0.65, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = this.type.color2;
+      ctx.beginPath();
+      ctx.moveTo(-s*0.7, 0);
+      ctx.lineTo(-s*1.3, -s*0.45 + tailWave*s*0.6);
+      ctx.lineTo(-s*1.0, 0);
+      ctx.lineTo(-s*1.3, s*0.45 + tailWave*s*0.6);
+      ctx.closePath();
+      ctx.fill();
+      // 目
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(s*0.5,-s*0.12,s*0.2,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(s*0.54,-s*0.12,s*0.1,0,Math.PI*2); ctx.fill();
+    } else {
+      // 通常描画
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.beginPath();
+      ctx.ellipse(2, 4, s*1.2, s*0.5, 0, 0, Math.PI*2);
+      ctx.fill();
+      const drawFn = FISH_DRAWERS[this.type.id] || drawGuppy;
+      ctx._skipEye = false;
+      drawFn(ctx, s, tailWave, this.type, this.tailPhase);
+      if (!ctx._skipEye) drawCuteEye(ctx, s);
+    }
+
+    ctx.restore();
+
+    // 成長ゲージ（未成熟時のみ）
+    if (this.growth < 1) {
+      const gw = s * 2;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(this.x - gw/2, this.y - s - 12, gw, 4);
+      ctx.fillStyle = '#06ff9d';
+      ctx.fillRect(this.x - gw/2, this.y - s - 12, gw * this.growth, 4);
+    } else if (!many) {
+      const star = '★';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.fillStyle = '#ffd166';
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+      ctx.textAlign = 'center';
+      const sy = this.y - s - 6 + Math.sin(Date.now()/200)*2;
+      ctx.strokeText(star, this.x, sy);
+      ctx.fillText(star, this.x, sy);
+    }
+  }
+  isClicked(px, py) {
+    const dx = px - this.x;
+    const dy = py - this.y;
+    return Math.sqrt(dx*dx + dy*dy) < this.size * 1.2;
+  }
+}
+
+// ==========================================
+// 餌クラス
+// ==========================================
+class Food {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.vy = 0.5;
+    this.vx = (Math.random() - 0.5) * 0.5;
+    this.size = 4;
+    this.eaten = false;
+    this.life = 15; // 15秒で消える
+    // 給餌レベルによる栄養価
+    this.nutrition = 0.05 * (1 + 0.2 * (game.upgrades.feedLv || 0));
+  }
+  update(dt) {
+    this.vy += 0.02;
+    this.vy = Math.min(this.vy, 1.5);
+    this.y += this.vy;
+    this.x += this.vx;
+    this.vx *= 0.98;
+    this.life -= dt;
+    if (this.y > H - UI_BOTTOM - 10) {
+      this.y = H - UI_BOTTOM - 10;
+      this.vy = 0;
+    }
+  }
+  draw(ctx) {
+    const lv = game.upgrades.feedLv || 0;
+    const x = this.x, y = this.y, s = this.size;
+    ctx.save();
+    if (lv === 0) {
+      ctx.fillStyle = '#c8965a';
+      ctx.beginPath(); ctx.arc(x, y, s, 0, Math.PI*2); ctx.fill();
+    } else if (lv === 1) {
+      ctx.fillStyle = '#ff9f1c';
+      ctx.beginPath(); ctx.arc(x, y, s*1.15, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.arc(x-s*0.2, y-s*0.2, s*0.35, 0, Math.PI*2); ctx.fill();
+    } else if (lv === 2) {
+      ctx.fillStyle = '#ff5500';
+      ctx.beginPath();
+      for(let i=0;i<6;i++){ const a=i*Math.PI/3-Math.PI/6; ctx.lineTo(x+Math.cos(a)*s*1.4,y+Math.sin(a)*s*1.4); }
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(255,200,100,0.5)'; ctx.beginPath(); ctx.arc(x-s*0.2,y-s*0.2,s*0.3,0,Math.PI*2); ctx.fill();
+    } else if (lv === 3) {
+      ctx.shadowColor='#ff0000'; ctx.shadowBlur=10;
+      ctx.fillStyle='#cc0000'; ctx.beginPath(); ctx.arc(x,y,s*1.3,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0; ctx.fillStyle='rgba(255,100,100,0.5)'; ctx.beginPath(); ctx.arc(x-s*0.3,y-s*0.3,s*0.4,0,Math.PI*2); ctx.fill();
+    } else if (lv === 4) {
+      ctx.shadowColor='#cc00ff'; ctx.shadowBlur=12;
+      ctx.fillStyle='#9b59b6';
+      ctx.beginPath(); ctx.moveTo(x,y-s*1.6); ctx.lineTo(x+s*1.2,y); ctx.lineTo(x,y+s*1.6); ctx.lineTo(x-s*1.2,y); ctx.closePath(); ctx.fill();
+      ctx.shadowBlur=0; ctx.fillStyle='rgba(255,200,255,0.5)'; ctx.beginPath(); ctx.arc(x-s*0.3,y-s*0.5,s*0.3,0,Math.PI*2); ctx.fill();
+    } else {
+      // Lv5 レインボースター
+      const hue = (Date.now()/8) % 360;
+      ctx.shadowColor=`hsl(${hue},100%,60%)`; ctx.shadowBlur=15;
+      ctx.fillStyle=`hsl(${hue},100%,60%)`;
+      ctx.beginPath();
+      for(let i=0;i<10;i++){
+        const a=(i*Math.PI/5)-Math.PI/2;
+        const r=i%2===0?s*2.2:s*0.9;
+        ctx.lineTo(x+Math.cos(a)*r, y+Math.sin(a)*r);
+      }
+      ctx.closePath(); ctx.fill(); ctx.shadowBlur=0;
+    }
+    ctx.restore();
+  }
+}
+
+// ==========================================
+// 気泡
+// ==========================================
+class Bubble {
+  constructor() {
+    this.x = Math.random() * W;
+    this.y = H + 10;
+    this.size = 2 + Math.random() * 6;
+    this.speed = 0.5 + Math.random() * 1.5;
+    this.wobble = Math.random() * Math.PI * 2;
+  }
+  update(dt) {
+    this.y -= this.speed;
+    this.wobble += dt * 3;
+    this.x += Math.sin(this.wobble) * 0.5;
+  }
+  draw(ctx) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
+  }
+}
+
+// ==========================================
+// パーティクル（出荷エフェクト）
+// ==========================================
+class Particle {
+  constructor(x, y, color, text) {
+    this.x = x; this.y = y;
+    this.vx = (Math.random()-0.5)*4;
+    this.vy = -Math.random()*4 - 2;
+    this.life = 1.0;
+    this.color = color;
+    this.text = text;
+  }
+  update(dt) {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.vy += 0.1;
+    this.life -= dt * 1.5;
+  }
+  draw(ctx) {
+    if (this.text) {
+      ctx.globalAlpha = Math.max(0, this.life);
+      ctx.fillStyle = this.color;
+      ctx.font = 'bold 20px sans-serif';
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 3;
+      ctx.textAlign = 'center';
+      ctx.strokeText(this.text, this.x, this.y);
+      ctx.fillText(this.text, this.x, this.y);
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.globalAlpha = Math.max(0, this.life);
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, 4, 0, Math.PI*2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+// ==========================================
+// 海藻・装飾
+// ==========================================
+function drawDecor(ctx, time) {
+  const lv = game.upgrades.tankLv || 0;
+  const by = H - UI_BOTTOM - 10; // 可視底辺
+
+  if (lv >= 9) return; // 宇宙・雲の上は装飾なし
+
+  if (lv <= 1) {
+    // 基本水槽：砂＋海藻＋岩
+    const sg = ctx.createLinearGradient(0,by-20,0,by+30); sg.addColorStop(0,'#e0c097'); sg.addColorStop(1,'#a07c50');
+    ctx.fillStyle=sg; ctx.fillRect(0,by-10,W,40);
+    [50,150,W-100,W-200,W/2].forEach((x,i)=>{
+      ctx.strokeStyle='#2d8a4e'; ctx.lineWidth=5; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(x,by-5);
+      for(let s=1;s<=6;s++) ctx.lineTo(x+Math.sin(time*0.001+i+s*0.5)*8, by-5-s*12);
+      ctx.stroke();
+    });
+    ctx.fillStyle='#555'; ctx.beginPath(); ctx.ellipse(80,by-5,30,14,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#777'; ctx.beginPath(); ctx.ellipse(W-120,by-5,35,17,0,0,Math.PI*2); ctx.fill();
+
+  } else if (lv <= 3) {
+    // トロピカル：明るい砂＋カラフル海藻
+    const sg2=ctx.createLinearGradient(0,by-20,0,by+30); sg2.addColorStop(0,'#f5d98b'); sg2.addColorStop(1,'#c9a94a');
+    ctx.fillStyle=sg2; ctx.fillRect(0,by-10,W,40);
+    [40,120,220,W-80,W-180].forEach((x,i)=>{
+      ctx.strokeStyle=`hsl(${120+i*30},70%,40%)`; ctx.lineWidth=6; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(x,by-5);
+      for(let s=1;s<=7;s++) ctx.lineTo(x+Math.sin(time*0.0015+i+s*0.6)*12,by-5-s*13);
+      ctx.stroke();
+    });
+    // ヒトデ
+    ctx.fillStyle='#ff7043';
+    [[100,by-5],[W-150,by-8]].forEach(([sx,sy])=>{
+      ctx.beginPath();
+      for(let i=0;i<10;i++){ const a=i*Math.PI/5-Math.PI/2; const r=i%2?12:5; ctx.lineTo(sx+Math.cos(a)*r,sy+Math.sin(a)*r); }
+      ctx.closePath(); ctx.fill();
+    });
+
+  } else if (lv <= 5) {
+    // サンゴ礁
+    const sg3=ctx.createLinearGradient(0,by-20,0,by+30); sg3.addColorStop(0,'#e8c98a'); sg3.addColorStop(1,'#b89060');
+    ctx.fillStyle=sg3; ctx.fillRect(0,by-10,W,40);
+    // サンゴ
+    [[60,'#ff6b9d'],[160,'#ff9f1c'],[W/2,'#e74c3c'],[W-100,'#9b59b6'],[W-220,'#f39c12']].forEach(([x,c])=>{
+      ctx.fillStyle=c;
+      for(let b=0;b<5;b++){
+        const bx=x+(b-2)*10+Math.sin(time*0.002+b)*4;
+        ctx.beginPath(); ctx.moveTo(bx,by-5); ctx.lineTo(bx-5,by-30-b*3); ctx.lineTo(bx+5,by-30-b*3); ctx.closePath(); ctx.fill();
+      }
+    });
+
+  } else if (lv <= 7) {
+    // 深海：発光ライン
+    ctx.strokeStyle='rgba(0,180,255,0.2)'; ctx.lineWidth=2;
+    for(let i=0;i<5;i++){ const x=(i*180+time*0.02)%W; ctx.beginPath(); ctx.moveTo(x,UI_TOP); ctx.lineTo(x,by); ctx.stroke(); }
+
+  } else {
+    // 空（Lv8）：下に雲
+    ctx.fillStyle='rgba(255,255,255,0.75)';
+    for(let i=0;i<3;i++){
+      const cx=((i*280+time*0.02)%(W+250))-125;
+      const cy=by-20;
+      ctx.beginPath(); ctx.arc(cx,cy,32,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+45,cy+5,25,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+78,cy,30,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.rect(cx-5,cy,90,28); ctx.fill();
+    }
+  }
+}
+
+// ==========================================
+// ゲームロジック
+// ==========================================
+function addFood(x, y) {
+  if (y < UI_TOP || y > H - UI_BOTTOM) return;
+  game.foods.push(new Food(x, y));
+  seFeed();
+}
+
+function bulkFeed() {
+  if (!game.running) return;
+  // 一括給餌：複数の餌を上部から散布
+  for (let i = 0; i < 15; i++) {
+    const x = Math.random() * W;
+    const y = UI_TOP + Math.random() * 50;
+    game.foods.push(new Food(x, y));
+  }
+}
+
+function shipFish(fish) {
+  if (game.fish.length <= 1) {
+    showToast('⚠️ 最後の1匹は出荷できません！');
+    return;
+  }
+  const price = fish.type.price;
+  game.money += price;
+  game.total += price;
+  game.shipped++;
+  seShip();
+  // エフェクト
+  for (let i = 0; i < 8; i++) {
+    game.particles.push(new Particle(fish.x, fish.y, '#ffd166', null));
+  }
+  game.particles.push(new Particle(fish.x, fish.y-20, '#ffd166', '+' + price + 'G'));
+  showToast('📦 ' + fish.type.name + ' 出荷! +' + price + 'G');
+  const idx = game.fish.indexOf(fish);
+  if (idx >= 0) game.fish.splice(idx, 1);
+}
+
+function bulkShip() {
+  if (!game.running) return;
+  const mature = game.fish.filter(f => f.growth >= 1);
+  // 稚魚を1匹以上残してから出荷（全滅防止）
+  const babies = game.fish.filter(f => f.growth < 1);
+  if (mature.length > 0 && babies.length === 0 && mature.length === game.fish.length) {
+    // 最後の1匹は残す
+    mature.slice(0, -1).forEach(f => shipFish(f));
+    showToast('🐟 最後の1匹は残しました！');
+  } else {
+    mature.forEach(f => shipFish(f));
+  }
+  // 魚が0匹なら無料で1匹補充
+  if (game.fish.length === 0) {
+    spawnFish(0, W/2, H/2);
+    showToast('🎁 稚魚を1匹補充しました！');
+  }
+}
+
+function spawnFish(typeIndex, x, y) {
+  if (game.fish.length >= game.maxFish) return false;
+  if (typeIndex === undefined) {
+    const unlockLv = game.upgrades.fishUnlock || 0;
+    const max = Math.min(unlockLv, FISH_TYPES.length - 1);
+    typeIndex = Math.floor(Math.random() * (max + 1));
+  }
+  if (typeIndex < 0 || typeIndex >= FISH_TYPES.length) typeIndex = 0;
+  if (x === undefined) x = 30 + Math.random() * (W - 60);
+  if (y === undefined) y = UI_TOP + 15 + Math.random() * (H - UI_TOP - UI_BOTTOM - 30);
+  game.fish.push(new Fish(typeIndex, x, y));
+  // 図鑑登録
+  const tid = FISH_TYPES[typeIndex].id;
+  if (!game.fishSeen.includes(tid)) {
+    game.fishSeen.push(tid);
+    showToast('📖 図鑑に登録: ' + FISH_TYPES[typeIndex].name);
+  }
+  return true;
+}
+
+// ==========================================
+// 当たり判定 & 食事処理
+// ==========================================
+function checkCollisions(dt) {
+  for (const f of game.foods) {
+    if (f.eaten) continue;
+    let closest = null;
+    let minDist = 30;
+    for (const fish of game.fish) {
+      if (fish.growth >= 1) continue;
+      const dx = f.x - fish.x;
+      const dy = f.y - fish.y;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if (d < minDist + fish.size) {
+        closest = fish;
+        minDist = d;
+      }
+    }
+    if (closest) {
+      // 餌に向かって少し引き寄せる
+      const dx = f.x - closest.x;
+      const dy = f.y - closest.y;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if (d < closest.size * 1.5) {
+        // 食べる
+        f.eaten = true;
+        const growthAdd = f.nutrition * (30 / closest.type.growTime);
+        closest.growth = Math.min(1, closest.growth + growthAdd);
+        // 食事エフェクト
+        for (let i = 0; i < 3; i++) {
+          game.particles.push(new Particle(f.x, f.y, '#ffd166', null));
+        }
+      } else if (d < 80) {
+        // 引き寄せ
+        closest.vx += -dx / d * 0.05;
+        closest.vy += -dy / d * 0.05;
+        if (dx > 0) closest.dir = 1;
+        else closest.dir = -1;
+      }
+    }
+  }
+  // 食べられた・寿命切れの餌を削除
+  game.foods = game.foods.filter(f => !f.eaten && f.life > 0);
+}
+
+// ==========================================
+// 繁殖処理
+// ==========================================
+function handleBreeding(dt) {
+  for (const fish of game.fish) {
+    if (fish.growth >= 1 && fish.breedCooldown <= 0) {
+      if (game.fish.length < game.maxFish) {
+        // 解放済みの魚からランダムに産む
+        const unlockLv = game.upgrades.fishUnlock || 0;
+        const maxType = Math.min(unlockLv, FISH_TYPES.length - 1);
+        const newTypeIndex = Math.floor(Math.random() * (maxType + 1));
+        const newF = new Fish(newTypeIndex, fish.x + (Math.random()-0.5)*20, fish.y);
+        newF.size = newF.type.size * 0.3;
+        game.fish.push(newF);
+        showToast('🐟 ' + FISH_TYPES[newTypeIndex].name + ' が生まれた!');
+        seBorn();
+        const btid = FISH_TYPES[newTypeIndex].id;
+        if (!game.fishSeen.includes(btid)) { game.fishSeen.push(btid); showToast('📖 図鑑に登録: ' + FISH_TYPES[newTypeIndex].name); }
+      }
+      // 1匹あたり1秒で繁殖（魚が増えるほど全体の産出が増える）
+      fish.breedCooldown = 1;
+    }
+  }
+}
+
+// ==========================================
+// 自動機能
+// ==========================================
+function handleAutomation(dt) {
+  // 自動給餌: 購入済み かつ ON
+  if (game.upgrades.autoFeeder && game.autoSettings.autoFeederEnabled) {
+    game.autoFeedTimer -= dt;
+    if (game.autoFeedTimer <= 0) {
+      // 数匹分の餌を投下
+      for (let i = 0; i < 3; i++) {
+        const x = Math.random() * W;
+        game.foods.push(new Food(x, UI_TOP + 20));
+      }
+      game.autoFeedTimer = 2;
+    }
+  }
+  // 自動出荷: 購入済み かつ ON かつ 水槽が満タン になったら一括出荷
+  if (game.upgrades.autoShipper && game.autoSettings.autoShipperEnabled) {
+    if (game.fish.length >= game.maxFish) {
+      // 成熟魚が1匹以上いる場合のみ一括出荷を実行
+      const matureCount = game.fish.filter(f => f.growth >= 1).length;
+      if (matureCount > 0) {
+        // 少しクールダウンを置く（連続発火防止）
+        game.autoShipTimer -= dt;
+        if (game.autoShipTimer <= 0) {
+          showToast('🚚 水槽満タン！自動一括出荷');
+          bulkShip();
+          game.autoShipTimer = 1.0;
+        }
+      }
+    }
+  }
+}
+
+// ==========================================
+// 称号チェック
+// ==========================================
+function checkAchievements() {
+  const a = game.achievements;
+  if (!a.a1000 && game.total >= 1000) { a.a1000 = true; showAchievement('🥉 アクアリスト見習い'); }
+  if (!a.a10000 && game.total >= 10000) { a.a10000 = true; showAchievement('🥈 熱帯魚マスター'); }
+  if (!a.a100000 && game.total >= 100000) { a.a100000 = true; showAchievement('🥇 出荷王'); }
+  if (!a.a1000000 && game.total >= 1000000) {
+    a.a1000000 = true;
+    showAchievement('👑 アクア帝王！');
+    document.getElementById('endingScreen').style.display = 'flex';
+  }
+}
+
+function showAchievement(text) {
+  const bar = document.getElementById('achievementBar');
+  bar.textContent = '🏆 称号獲得: ' + text;
+  bar.style.display = 'block';
+  seAchieve();
+  setTimeout(() => bar.style.display = 'none', 4000);
+}
+
+// ==========================================
+// UI更新
+// ==========================================
+function formatG(n) {
+  if (n >= 1e12) return (n/1e12).toFixed(1) + '兆G';
+  if (n >= 1e8)  return (n/1e8).toFixed(1)  + '億G';
+  if (n >= 1e4)  return (n/1e4).toFixed(1)  + '万G';
+  return Math.floor(n).toLocaleString() + ' G';
+}
+
+function updateUI() {
+  document.getElementById('moneyDisplay').textContent = formatG(game.money);
+  // 出荷予想額：今すぐ出荷したら得られる金額
+  const expected = game.fish.filter(f=>f.growth>=1).reduce((s,f)=>s+f.type.price,0);
+  document.getElementById('expectedDisplay').textContent = '+' + formatG(expected);
+  // 隠し要素（もし残っていれば）
+  const fd=document.getElementById('fishDisplay'); if(fd) fd.textContent=game.fish.length+'/'+game.maxFish;
+  const sd=document.getElementById('shipDisplay'); if(sd) sd.textContent=game.shipped;
+  // 水槽満タン度バー
+  const ratio = game.fish.length / game.maxFish;
+  const fill = document.getElementById('tankBarFill');
+  const text = document.getElementById('tankBarText');
+  if (fill) fill.style.width = Math.round(ratio * 100) + '%';
+  if (text) text.textContent = game.fish.length + ' / ' + game.maxFish;
+  // バーが満タンのとき色を変える
+  if (fill) fill.style.background = ratio >= 1
+    ? 'linear-gradient(90deg, #ff9f1c, #ff6b35)'
+    : 'linear-gradient(90deg, #06aed5, #06ff9d)';
+}
+
+function updateAutoButtons() {
+  const feederBtn = document.getElementById('autoFeederToggle');
+  const shipperBtn = document.getElementById('autoShipperToggle');
+  if (game.upgrades.autoFeeder) {
+    feederBtn.style.display = 'flex';
+    const on = game.autoSettings.autoFeederEnabled;
+    const fb = document.getElementById('feederBadge');
+    if (fb) { fb.textContent = on ? 'ON' : 'OFF'; fb.className = 'auto-badge' + (on ? ' on' : ''); }
+    feederBtn.style.borderColor = on ? '#06d6a0' : '#888';
+  } else {
+    feederBtn.style.display = 'none';
+  }
+  if (game.upgrades.autoShipper) {
+    shipperBtn.style.display = 'flex';
+    const on = game.autoSettings.autoShipperEnabled;
+    const sb = document.getElementById('shipperBadge');
+    if (sb) { sb.textContent = on ? 'ON' : 'OFF'; sb.className = 'auto-badge' + (on ? ' on' : ''); }
+    shipperBtn.style.borderColor = on ? '#06d6a0' : '#888';
+  } else {
+    shipperBtn.style.display = 'none';
+  }
+}
+
+// トースト
+function showToast(msg) {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 2000);
+}
+
+// ==========================================
+// ショップ表示
+// ==========================================
+function openShop() {
+  if (!game.running) return;
+  const list = document.getElementById('shopList');
+  list.innerHTML = '';
+  UPGRADES.forEach(up => {
+    const rawVal = game.upgrades[up.id];
+    const lv = typeof rawVal === 'boolean'
+      ? (rawVal ? 1 : 0)
+      : (rawVal || 0);
+    const isMax = lv >= up.maxLv;
+    const cost = isMax ? 0 : up.cost(lv);
+    const canBuy = !isMax && game.money >= cost;
+
+    const item = document.createElement('div');
+    item.className = 'shop-item';
+    let lvText = '';
+    if (up.maxLv === 1) {
+      lvText = isMax ? '✅ 購入済み' : '未購入';
+    } else {
+      lvText = 'Lv ' + lv + ' / ' + up.maxLv;
+    }
+    // 魚解放の場合、次解放される魚を表示
+    let extra = '';
+    if (up.id === 'fishUnlock' && !isMax && FISH_TYPES[lv+1]) {
+      extra = ' (' + FISH_TYPES[lv+1].name + ')';
+    }
+
+    // 購入済み自動化アイテムにON/OFFトグルを表示
+    let rightControl = '';
+    if (isMax && (up.id === 'autoFeeder' || up.id === 'autoShipper')) {
+      const enKey = up.id === 'autoFeeder' ? 'autoFeederEnabled' : 'autoShipperEnabled';
+      const enabled = game.autoSettings[enKey];
+      rightControl = `
+        <button class="btn toggle-btn" data-toggle="${enKey}" style="background: ${enabled ? 'linear-gradient(180deg,#06d6a0,#06aed5)' : 'linear-gradient(180deg,#888,#555)'}; box-shadow: 0 3px 0 ${enabled ? '#048a6a' : '#333'}, 0 4px 8px rgba(0,0,0,0.3);">
+          ${enabled ? 'ON' : 'OFF'}
+        </button>
+      `;
+    } else {
+      rightControl = `
+        <button class="btn buy-btn" data-id="${up.id}" ${canBuy ? '' : 'disabled'}>
+          ${isMax ? 'MAX' : cost.toLocaleString() + ' G'}
+        </button>
+      `;
+    }
+
+    item.innerHTML = `
+      <div class="info">
+        <div class="title">${up.name}${extra}</div>
+        <div class="desc">${up.desc}</div>
+        <div class="level">${lvText}</div>
+      </div>
+      ${rightControl}
+    `;
+    list.appendChild(item);
+  });
+
+  // 購入ボタン
+  list.querySelectorAll('.buy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      buyUpgrade(btn.dataset.id);
+    });
+  });
+  // ON/OFFトグル
+  list.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.toggle;
+      game.autoSettings[key] = !game.autoSettings[key];
+      saveGame();
+      openShop();
+      updateAutoButtons();
+    });
+  });
+
+  document.getElementById('shopModal').classList.add('show');
+}
+
+function buyUpgrade(id) {
+  const up = UPGRADES.find(u => u.id === id);
+  if (!up) return;
+  const cur = game.upgrades[id];
+  const lv = typeof cur === 'boolean' ? (cur?1:0) : (cur || 0);
+  if (lv >= up.maxLv) return;
+  const cost = up.cost(lv);
+  if (game.money < cost) return;
+  game.money -= cost;
+  if (typeof cur === 'boolean') {
+    game.upgrades[id] = true;
+  } else {
+    game.upgrades[id] = lv + 1;
+  }
+  // 効果反映
+  if (id === 'tankLv') game.maxFish = 10 + (game.upgrades.tankLv || 0) * 50;
+  showToast('🛒 購入完了: ' + up.name);
+  seBuy();
+  saveGame();
+  openShop(); // 再描画
+  updateAutoButtons();
+}
+
+function closeShop() {
+  document.getElementById('shopModal').classList.remove('show');
+}
+
+// ==========================================
+// 図鑑
+// ==========================================
+// ==========================================
+// ミッション
+// ==========================================
+function checkMissions() {
+  let anyClaimable = false;
+  MISSIONS.forEach(m => {
+    if (!game.missionsDone[m.id] && m.check()) {
+      game.missionsDone[m.id] = 'done';
+    }
+    if (game.missionsDone[m.id] === 'done') anyClaimable = true;
+  });
+  const badge = document.getElementById('missionBadge');
+  if (badge) badge.style.display = anyClaimable ? '' : 'none';
+}
+
+function openMissions() {
+  const list = document.getElementById('missionList');
+  list.innerHTML = '';
+  MISSIONS.forEach(m => {
+    const status = game.missionsDone[m.id];
+    const done = status === 'done';
+    const claimed = status === 'claimed';
+    const item = document.createElement('div');
+    item.className = 'shop-item';
+    item.style.opacity = claimed ? '0.5' : '1';
+    item.innerHTML = `
+      <div class="info">
+        <div class="title">${m.title}</div>
+        <div class="desc">${m.desc}</div>
+        <div class="level" style="color:#ffd166;">報酬: ${formatG(m.reward)}</div>
+      </div>
+      <button class="btn" style="font-size:12px;padding:6px 10px;${claimed?'background:#555;box-shadow:none;':''}"
+        ${done?'':'disabled'} data-mid="${m.id}">
+        ${claimed ? 'クリア済' : done ? '受け取る' : '未達成'}
+      </button>`;
+    list.appendChild(item);
+  });
+  list.querySelectorAll('button[data-mid]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const m = MISSIONS.find(x=>x.id===btn.dataset.mid);
+      if (!m || game.missionsDone[m.id] !== 'done') return;
+      game.missionsDone[m.id] = 'claimed';
+      game.money += m.reward;
+      showToast('🎉 ミッション達成！ +' + formatG(m.reward));
+      saveGame();
+      openMissions();
+      checkMissions();
+    });
+  });
+  const doneCount = MISSIONS.filter(m=>game.missionsDone[m.id]==='claimed').length;
+  document.querySelector('#missionModal h2').textContent = `📋 ミッション (${doneCount}/${MISSIONS.length}クリア)`;
+  document.getElementById('missionModal').classList.add('show');
+}
+
+function closeMissions() {
+  document.getElementById('missionModal').classList.remove('show');
+}
+
+let _figukuTab = 'fish';
+
+// 小さな魚アイコンをcanvasに描く
+function drawFishIcon(ft, size) {
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  try {
+    const cx = c.getContext('2d');
+    cx.save();
+    cx.translate(size * 0.38, size * 0.5);
+    const s = size * 0.21;
+    const fn = FISH_DRAWERS[ft.id] || drawGuppy;
+    cx._skipEye = false;
+    fn(cx, s, 0, ft);
+    if (!cx._skipEye) drawCuteEye(cx, s);
+    cx.restore();
+  } catch(e) {}
+  return c;
+}
+
+// 餌アイコンをcanvasに描く
+function drawFeedIcon(lv, size) {
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const cx = c.getContext('2d');
+  cx.save(); cx.translate(size/2, size/2);
+  const s = size * 0.26, x = 0, y = 0;
+  if (lv===0){ cx.fillStyle='#c8965a'; cx.beginPath(); cx.arc(x,y,s,0,Math.PI*2); cx.fill(); }
+  else if(lv===1){ cx.fillStyle='#ff9f1c'; cx.beginPath(); cx.arc(x,y,s*1.1,0,Math.PI*2); cx.fill(); cx.fillStyle='rgba(255,255,255,0.4)'; cx.beginPath(); cx.arc(x-s*0.2,y-s*0.2,s*0.35,0,Math.PI*2); cx.fill(); }
+  else if(lv===2){ cx.fillStyle='#ff5500'; cx.beginPath(); for(let i=0;i<6;i++){const a=i*Math.PI/3-Math.PI/6; cx.lineTo(x+Math.cos(a)*s*1.4,y+Math.sin(a)*s*1.4);} cx.closePath(); cx.fill(); }
+  else if(lv===3){ cx.shadowColor='#f00'; cx.shadowBlur=8; cx.fillStyle='#cc0000'; cx.beginPath(); cx.arc(x,y,s*1.25,0,Math.PI*2); cx.fill(); cx.shadowBlur=0; }
+  else if(lv===4){ cx.shadowColor='#c0f'; cx.shadowBlur=10; cx.fillStyle='#9b59b6'; cx.beginPath(); cx.moveTo(x,y-s*1.6); cx.lineTo(x+s*1.2,y); cx.lineTo(x,y+s*1.6); cx.lineTo(x-s*1.2,y); cx.closePath(); cx.fill(); cx.shadowBlur=0; }
+  else { cx.shadowColor='#ff0'; cx.shadowBlur=12; cx.fillStyle='hsl(45,100%,60%)'; cx.beginPath(); for(let i=0;i<10;i++){const a=(i*Math.PI/5)-Math.PI/2,r=i%2?s*0.9:s*2.1; cx.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r);} cx.closePath(); cx.fill(); cx.shadowBlur=0; }
+  cx.restore();
+  return c;
+}
+
+// 水槽ミニプレビューをcanvasに描く
+function drawTankIcon(td, size) {
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const cx = c.getContext('2d');
+  const g = cx.createLinearGradient(0,0,0,size);
+  g.addColorStop(0, td.bg[0]); g.addColorStop(1, td.bg[1]);
+  cx.fillStyle=g; cx.fillRect(0,0,size,size);
+  cx.font = `${size*0.45}px sans-serif`;
+  cx.textAlign='center'; cx.textBaseline='middle';
+  cx.fillText(td.emoji, size/2, size/2);
+  return c;
+}
+
+function openFiguku(tab) {
+  if (tab) _figukuTab = tab;
+  // タブボタン色更新
+  ['fish','feed','tank'].forEach(t => {
+    const b = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (b) b.style.opacity = t === _figukuTab ? '1' : '0.55';
+  });
+  const list = document.getElementById('figukuList');
+  list.innerHTML = '';
+  const title = document.getElementById('figukuTitle');
+
+  if (_figukuTab === 'fish') {
+    const seen = game.fishSeen;
+    title.textContent = `🐠 魚コレクション (${seen.length}/${FISH_TYPES.length})`;
+    FISH_TYPES.forEach(ft => {
+      const unlocked = seen.includes(ft.id);
+      const card = document.createElement('div');
+      card.className = 'fish-card' + (unlocked ? '' : ' locked');
+      const ic = document.createElement('div');
+      ic.style.cssText = 'width:60px;height:60px;flex-shrink:0;border-radius:8px;overflow:hidden;background:rgba(0,40,60,0.6);';
+      if (unlocked) {
+        ic.appendChild(drawFishIcon(ft, 60));
+        const info = document.createElement('div');
+        info.className = 'fish-info';
+        info.innerHTML = `<div class="fish-name">${ft.name}</div><div class="fish-desc">${ft.desc}</div><div class="fish-meta">出荷: ${ft.price.toLocaleString()}G ／ 成長: ${ft.growTime}s</div>`;
+        card.appendChild(ic); card.appendChild(info);
+      } else {
+        ic.innerHTML = '<div style="width:60px;height:60px;display:flex;align-items:center;justify-content:center;font-size:26px;">❓</div>';
+        const info = document.createElement('div');
+        info.className = 'fish-info';
+        info.innerHTML = '<div class="fish-name" style="color:#777;">???</div><div class="fish-desc" style="color:#555;">まだ出会っていない魚です</div>';
+        card.appendChild(ic); card.appendChild(info);
+      }
+      list.appendChild(card);
+    });
+
+  } else if (_figukuTab === 'feed') {
+    title.textContent = '🍤 餌コレクション';
+    FEED_DESIGNS.forEach(fd => {
+      const curLv = game.upgrades.feedLv || 0;
+      const unlocked = curLv >= fd.lv;
+      const card = document.createElement('div');
+      card.className = 'fish-card' + (unlocked ? '' : ' locked');
+      const ic = document.createElement('div');
+      ic.style.cssText = 'width:60px;height:60px;flex-shrink:0;border-radius:8px;overflow:hidden;background:rgba(0,40,60,0.6);';
+      ic.appendChild(unlocked ? drawFeedIcon(fd.lv, 60) : (() => { const d=document.createElement('div'); d.style.cssText='width:60px;height:60px;display:flex;align-items:center;justify-content:center;font-size:26px;'; d.textContent='🔒'; return d; })());
+      const info = document.createElement('div');
+      info.className = 'fish-info';
+      if (unlocked) info.innerHTML = `<div class="fish-name">${fd.name}</div><div class="fish-desc">${fd.desc}</div>`;
+      else info.innerHTML = `<div class="fish-name" style="color:#777;">???</div><div class="fish-desc" style="color:#555;">高級餌Lv${fd.lv}で解放</div>`;
+      card.appendChild(ic); card.appendChild(info);
+      list.appendChild(card);
+    });
+
+  } else if (_figukuTab === 'tank') {
+    title.textContent = '🪸 水槽コレクション';
+    TANK_DESIGNS.forEach(td => {
+      const unlocked = (game.upgrades.tankLv || 0) >= td.minLv;
+      const card = document.createElement('div');
+      card.className = 'fish-card' + (unlocked ? '' : ' locked');
+      const ic = document.createElement('div');
+      ic.style.cssText = 'width:60px;height:60px;flex-shrink:0;border-radius:8px;overflow:hidden;';
+      ic.appendChild(drawTankIcon(td, 60));
+      if (!unlocked) { ic.style.filter='brightness(0.3)'; }
+      const info = document.createElement('div');
+      info.className = 'fish-info';
+      if (unlocked) info.innerHTML = `<div class="fish-name">${td.emoji} ${td.name}</div><div class="fish-desc">${td.desc}</div>`;
+      else info.innerHTML = `<div class="fish-name" style="color:#777;">???</div><div class="fish-desc" style="color:#555;">水槽拡張Lv${td.minLv}で解放</div>`;
+      card.appendChild(ic); card.appendChild(info);
+      list.appendChild(card);
+    });
+  }
+
+  document.getElementById('figukuModal').classList.add('show');
+}
+
+function closeFiguku() {
+  document.getElementById('figukuModal').classList.remove('show');
+}
+
+// ==========================================
+// 入力処理
+// ==========================================
+function getEventPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  let cx, cy;
+  if (e.touches && e.touches.length > 0) {
+    cx = e.touches[0].clientX;
+    cy = e.touches[0].clientY;
+  } else if (e.changedTouches && e.changedTouches.length > 0) {
+    cx = e.changedTouches[0].clientX;
+    cy = e.changedTouches[0].clientY;
+  } else {
+    cx = e.clientX;
+    cy = e.clientY;
+  }
+  return { x: cx - rect.left, y: cy - rect.top };
+}
+
+function handleCanvasClick(e) {
+  if (!game.running) return;
+  // モーダルが開いていれば無視
+  if (document.getElementById('shopModal').classList.contains('show')) return;
+  if (document.getElementById('gameOverModal').classList.contains('show')) return;
+  if (document.getElementById('figukuModal').classList.contains('show')) return;
+  if (document.getElementById('missionModal').classList.contains('show')) return;
+  const pos = getEventPos(e);
+  // 成熟魚クリック→出荷
+  for (let i = game.fish.length - 1; i >= 0; i--) {
+    const f = game.fish[i];
+    if (f.growth >= 1 && f.isClicked(pos.x, pos.y)) {
+      shipFish(f);
+      return;
+    }
+  }
+  // それ以外なら餌投下
+  addFood(pos.x, pos.y);
+}
+
+canvas.addEventListener('click', handleCanvasClick);
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  handleCanvasClick(e);
+}, { passive: false });
+
+// キー操作
+document.addEventListener('keydown', (e) => {
+  if (!game.running) return;
+  if (e.key === 'f' || e.key === 'F') bulkFeed();
+  if (e.key === 's' || e.key === 'S') bulkShip();
+  if (e.key === 'Escape') closeShop();
+});
+
+document.getElementById('feedBtn').addEventListener('click', () => { seClick(); bulkFeed(); });
+document.getElementById('shipBtn').addEventListener('click', () => { seClick(); bulkShip(); });
+document.getElementById('shopBtn').addEventListener('click', () => { seClick(); openShop(); });
+document.getElementById('figukuBtn').addEventListener('click', openFiguku);
+document.getElementById('closeFiguku').addEventListener('click', closeFiguku);
+document.getElementById('missionBtn').addEventListener('click', openMissions);
+document.getElementById('closeMission').addEventListener('click', closeMissions);
+document.getElementById('autoFeederToggle').addEventListener('click', () => {
+  game.autoSettings.autoFeederEnabled = !game.autoSettings.autoFeederEnabled;
+  saveGame();
+  updateAutoButtons();
+});
+document.getElementById('autoShipperToggle').addEventListener('click', () => {
+  game.autoSettings.autoShipperEnabled = !game.autoSettings.autoShipperEnabled;
+  saveGame();
+  updateAutoButtons();
+});
+document.getElementById('closeShop').addEventListener('click', closeShop);
+document.getElementById('restartBtn').addEventListener('click', () => {
+  document.getElementById('gameOverModal').classList.remove('show');
+  resetGame();
+  game.running = true;
+  updateAutoButtons();
+});
+document.getElementById('startBtn').addEventListener('click', () => {
+  document.getElementById('titleScreen').style.display = 'none';
+  resetGame();
+  game.running = true;
+  updateAutoButtons();
+  startBGM();
+});
+document.getElementById('continueBtn').addEventListener('click', () => {
+  document.getElementById('titleScreen').style.display = 'none';
+  // ロード済みなのでそのまま開始
+  // 魚がいなくて所持金不足の場合は初期魚を補う
+  if (game.fish.length === 0 && game.money < 50) {
+    game.money = Math.max(game.money, 100);
+    spawnFish(0, W/2, H/2);
+  } else if (game.fish.length === 0) {
+    spawnFish(0, W/2, H/2);
+  }
+  game.running = true;
+  updateAutoButtons();
+  startBGM();
+});
+document.getElementById('continueAfterEnd').addEventListener('click', () => {
+  document.getElementById('endingScreen').style.display = 'none';
+});
+
+// ==========================================
+// セーブ・ロード
+// ==========================================
+function saveGame() {
+  try {
+    const data = {
+      money: game.money,
+      total: game.total,
+      shipped: game.shipped,
+      upgrades: game.upgrades,
+      autoSettings: game.autoSettings,
+      maxFish: game.maxFish,
+      achievements: game.achievements,
+      fish: game.fish.map(f => ({ t: f.typeIndex, x: f.x, y: f.y, g: f.growth })),
+      fishSeen: game.fishSeen,
+      missionsDone: game.missionsDone,
+    };
+    localStorage.setItem('tropicalTycoon', JSON.stringify(data));
+  } catch (e) {}
+}
+
+function loadGame() {
+  try {
+    const s = localStorage.getItem('tropicalTycoon');
+    if (!s) return false;
+    const data = JSON.parse(s);
+    if (!data) return false;
+    
+    game.money = (typeof data.money === 'number') ? data.money : 100;
+    game.total = (typeof data.total === 'number') ? data.total : 0;
+    game.shipped = (typeof data.shipped === 'number') ? data.shipped : 0;
+    
+    // upgrades のマージ（古いセーブとの互換性）
+    const defUp = getDefaultUpgrades();
+    game.upgrades = Object.assign(defUp, data.upgrades || {});
+    
+    game.maxFish = (typeof data.maxFish === 'number') ? data.maxFish : (10 + (game.upgrades.tankLv || 0) * 5);
+    
+    // achievements のマージ
+    const defAch = getDefaultAchievements();
+    game.achievements = Object.assign(defAch, data.achievements || {});
+
+    // autoSettings のマージ
+    const defAuto = getDefaultAutoSettings();
+    game.autoSettings = Object.assign(defAuto, data.autoSettings || {});
+
+    game.fishSeen = Array.isArray(data.fishSeen) ? data.fishSeen : [];
+    game.missionsDone = (data.missionsDone && typeof data.missionsDone === 'object') ? data.missionsDone : {};
+
+    game.fish = [];
+    if (Array.isArray(data.fish)) {
+      data.fish.forEach(f => {
+        if (f && typeof f.t === 'number' && FISH_TYPES[f.t]) {
+          const nf = new Fish(f.t, f.x || W/2, f.y || H/2);
+          nf.growth = (typeof f.g === 'number') ? f.g : 0;
+          game.fish.push(nf);
+        }
+      });
+    }
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function resetGame() {
+  game.money = 100;
+  game.total = 0;
+  game.shipped = 0;
+  game.fish = [];
+  game.foods = [];
+  game.particles = [];
+  game.bubbles = [];
+  game.maxFish = 10;
+  game.upgrades = getDefaultUpgrades();
+  game.achievements = getDefaultAchievements();
+  game.fishSeen = [];
+  game.missionsDone = {};
+  game.autoFeedTimer = 0;
+  game.autoShipTimer = 0;
+  spawnFish(0, W/2, H/2);
+  game.running = true;
+}
+
+// =====================
+// メイン描画
+// =====================
+function drawBackground(time) {
+  const lv = game.upgrades.tankLv || 0;
+  let grad = ctx.createLinearGradient(0, 0, 0, H);
+
+  if (lv <= 1) {
+    // 基本水槽
+    grad.addColorStop(0,'#0a1628'); grad.addColorStop(0.5,'#0d2b4e'); grad.addColorStop(1,'#1a4a6e');
+  } else if (lv <= 3) {
+    // トロピカル
+    grad.addColorStop(0,'#006994'); grad.addColorStop(0.5,'#0099cc'); grad.addColorStop(1,'#00bfff');
+  } else if (lv <= 5) {
+    // サンゴ礁
+    grad.addColorStop(0,'#1a6b8a'); grad.addColorStop(0.5,'#2ea8cc'); grad.addColorStop(1,'#48c9b0');
+  } else if (lv <= 7) {
+    // 深海
+    grad.addColorStop(0,'#000520'); grad.addColorStop(0.6,'#001440'); grad.addColorStop(1,'#001a50');
+    ctx.fillStyle = grad; ctx.fillRect(0,0,W,H);
+    // 深海の発光粒子
+    for(let i=0;i<20;i++){
+      const px=((i*173+time*0.01)%(W+100))-50;
+      const py=UI_TOP+((i*97)%(H-UI_TOP-UI_BOTTOM));
+      const a=Math.sin(time*0.002+i)*0.5+0.5;
+      ctx.fillStyle=`rgba(0,200,255,${a*0.3})`;
+      ctx.beginPath(); ctx.arc(px,py,2+i%3,0,Math.PI*2); ctx.fill();
+    }
+    return;
+  } else if (lv <= 8) {
+    // 空
+    grad.addColorStop(0,'#5ec8f5'); grad.addColorStop(0.5,'#87ceeb'); grad.addColorStop(1,'#b8e4f5');
+    ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+    // 雲
+    ctx.fillStyle='rgba(255,255,255,0.85)';
+    for(let i=0;i<5;i++){
+      const cx=((i*230+time*0.015)%(W+250))-125;
+      const cy=UI_TOP+30+i*45;
+      ctx.beginPath(); ctx.arc(cx,cy,28,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+38,cy+5,22,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+66,cy,26,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.rect(cx-5,cy,80,22); ctx.fill();
+    }
+    return;
+  } else if (lv === 9) {
+    // 雲の上（夕焼け）
+    grad.addColorStop(0,'#2c0057'); grad.addColorStop(0.4,'#e67e22'); grad.addColorStop(0.8,'#f39c12'); grad.addColorStop(1,'#ffd166');
+    ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+    // 雲（下から）
+    ctx.fillStyle='rgba(255,255,255,0.6)';
+    for(let i=0;i<4;i++){
+      const cx=((i*260+time*0.01)%(W+250))-125;
+      const cy=H-UI_BOTTOM-40-i*30;
+      ctx.beginPath(); ctx.arc(cx,cy,35,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+45,cy+8,28,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+80,cy,32,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.rect(cx-5,cy,95,30); ctx.fill();
+    }
+    return;
+  } else {
+    // 宇宙
+    ctx.fillStyle='#000010'; ctx.fillRect(0,0,W,H);
+    // 星
+    for(let i=0;i<80;i++){
+      const sx=(i*137+23)%W, sy=(i*251+17)%H;
+      const blink=Math.sin(time*0.002+i)*0.35+0.65;
+      ctx.globalAlpha=blink;
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(sx,sy,(i%3)*0.5+0.5,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha=1;
+    // 惑星
+    ctx.fillStyle='rgba(255,90,40,0.75)'; ctx.beginPath(); ctx.arc(W*0.8,H*0.18,38,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(255,180,80,0.4)'; ctx.lineWidth=7;
+    ctx.beginPath(); ctx.ellipse(W*0.8,H*0.18,62,14,-0.3,0,Math.PI*2); ctx.stroke();
+    // 星雲
+    const neb=ctx.createRadialGradient(W*0.2,H*0.35,0,W*0.2,H*0.35,100);
+    neb.addColorStop(0,'rgba(100,0,200,0.25)'); neb.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=neb; ctx.fillRect(0,0,W,H);
+    return;
+  }
+  ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+}
+
+function draw(time) {
+  ctx.clearRect(0, 0, W, H);
+  drawBackground(time);
+  drawDecor(ctx, time);
+
+  // 泡
+  for (const b of game.bubbles) b.draw(ctx);
+
+  // 餌
+  for (const f of game.foods) f.draw(ctx);
+
+  // 魚
+  for (const fish of game.fish) fish.draw(ctx);
+
+  // パーティクル
+  for (const p of game.particles) p.draw(ctx);
+}
+
+// =====================
+// ゲームループ
+// =====================
+let lastTime = 0;
+let bubbleTimer = 0;
+
+function gameLoop(timestamp) {
+  const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+  lastTime = timestamp;
+
+  if (game.running) {
+    // 魚・餌・パーティクル更新
+    for (const fish of game.fish) {
+      fish.update(dt);
+      fish.growth = Math.min(1, fish.growth + dt / fish.growTime);
+    }
+    for (const f of game.foods) f.update(dt);
+    for (const p of game.particles) p.update(dt);
+    for (const b of game.bubbles) b.update(dt);
+
+    // 衝突・繁殖・自動化
+    checkCollisions();
+    handleBreeding(dt);
+    handleAutomation(dt);
+    checkAchievements();
+    checkMissions();
+    updateUI();
+
+    // 古い要素を削除
+    game.foods = game.foods.filter(f => !f.eaten && f.life > 0);
+    game.particles = game.particles.filter(p => p.life > 0);
+    game.bubbles = game.bubbles.filter(b => b.y > -20);
+
+    // 泡を定期生成
+    bubbleTimer += dt;
+    if (bubbleTimer > 0.3) {
+      bubbleTimer = 0;
+      if (game.bubbles.length < 30) game.bubbles.push(new Bubble());
+    }
+  }
+
+  draw(timestamp);
+  requestAnimationFrame(gameLoop);
+}
+
+// =====================
+// 起動
+// =====================
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// セーブデータがあればロード、なければリセット
+if (!loadGame()) {
+  resetGame();
+} else {
+  // セーブデータあり → 「続きから」ボタンを表示
+  document.getElementById('continueBtn').style.display = 'block';
+}
+updateAutoButtons();
+
+// 30秒ごとに自動セーブ
+setInterval(() => {
+  if (game.running) {
+    saveGame();
+    showToast('💾 オートセーブしました');
+  }
+}, 30000);
+
+// タブを閉じるときにセーブ
+window.addEventListener('beforeunload', () => saveGame());
+
+requestAnimationFrame(gameLoop);
+
+// ==========================================
+// PWA サービスワーカー登録
+// ==========================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('SW登録完了:', reg.scope))
+      .catch(err => console.log('SW登録失敗:', err));
+  });
+}
+
+// iOS スタンドアロン時のスクロール防止
+document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+</script>
+</body>
+</html>
