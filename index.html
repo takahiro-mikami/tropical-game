@@ -19,7 +19,7 @@
   html, body {
     width: 100%; height: 100%; overflow: hidden;
     font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
-    background: linear-gradient(180deg, #003844 0%, #006d77 100%);
+    background: #000a14;
     color: #fff;
   }
   /* ゲーム全体コンテナ */
@@ -32,6 +32,7 @@
     position: absolute; top: 0; left: 0; right: 0; z-index: 10;
     display: flex; flex-direction: column; gap: 5px;
     padding: 10px 12px 18px;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
     background: linear-gradient(180deg, rgba(0,8,20,0.97) 72%, rgba(0,8,20,0) 100%);
     pointer-events: none;
   }
@@ -98,8 +99,9 @@
     position: absolute; bottom: 0; left: 0; right: 0; z-index: 10;
     display: flex; justify-content: space-around; align-items: flex-end;
     padding: 8px 4px 10px;
-    padding-bottom: max(10px, env(safe-area-inset-bottom));
-    background: linear-gradient(0deg, rgba(0,8,20,0.98) 60%, rgba(0,8,20,0) 100%);
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+    background: #000a14;
+    border-top: 1px solid rgba(255,209,102,0.2);
     gap: 4px;
   }
   .nav-btn {
@@ -296,7 +298,7 @@
   </div>
 
   <!-- サウンドボタン -->
-  <button id="soundToggle" onclick="toggleSound()" style="position:absolute;top:10px;right:10px;z-index:20;background:rgba(0,40,60,0.85);border:1.5px solid #ffd166;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;pointer-events:auto;color:#fff;padding:0;">🔊</button>
+  <button id="soundToggle" onclick="toggleSound()" style="position:absolute;top:max(calc(env(safe-area-inset-top,0px) + 10px), 10px);right:10px;z-index:20;background:rgba(0,40,60,0.85);border:1.5px solid #ffd166;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;pointer-events:auto;color:#fff;padding:0;">🔊</button>
 
   <!-- 水槽状態バー -->
   <div id="statusBar">
@@ -1838,11 +1840,12 @@ function handleBreeding(dt) {
         const unlockLv = game.upgrades.fishUnlock || 0;
         const maxType = Math.min(unlockLv, FISH_TYPES.length - 1);
         const newTypeIndex = Math.floor(Math.random() * (maxType + 1));
-        const newF = new Fish(newTypeIndex, fish.x + (Math.random()-0.5)*20, fish.y);
+        const bx = 30 + Math.random() * (W - 60);
+        const by = UI_TOP + 15 + Math.random() * (H - UI_TOP - UI_BOTTOM - 30);
+        const newF = new Fish(newTypeIndex, bx, by);
         newF.size = newF.type.size * 0.3;
         game.fish.push(newF);
         showToast('🐟 ' + FISH_TYPES[newTypeIndex].name + ' が生まれた!');
-        seBorn();
         const btid = FISH_TYPES[newTypeIndex].id;
         if (!game.fishSeen.includes(btid)) { game.fishSeen.push(btid); showToast('📖 図鑑に登録: ' + FISH_TYPES[newTypeIndex].name); }
       }
