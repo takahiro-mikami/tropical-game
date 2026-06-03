@@ -2649,8 +2649,11 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// iOS スタンドアロン時のスクロール防止
-document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+// iOS スタンドアロン時のスクロール防止（モーダル内は除外）
+document.addEventListener('touchmove', e => {
+  if (e.target.closest('.modal-content, #figukuList, #missionList, #shopList')) return;
+  e.preventDefault();
+}, { passive: false });
 </script>
 </body>
 </html>
