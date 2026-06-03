@@ -21,13 +21,14 @@
     font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
     background: #000a14;
     color: #fff;
+    margin: 0; padding: 0;
   }
   /* ゲーム全体コンテナ */
   #gameContainer {
-    position: relative; width: 100vw;
-    height: 100vh;
-    height: 100dvh;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
     overflow: hidden;
+    background: #000a14;
   }
   /* ===== 上部ステータスバー ===== */
   #topBar {
@@ -101,10 +102,12 @@
     position: absolute; bottom: 0; left: 0; right: 0; z-index: 10;
     display: flex; justify-content: space-around; align-items: flex-end;
     padding: 8px 4px 10px;
-    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+    padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
     background: #000a14;
     border-top: 1px solid rgba(255,209,102,0.2);
     gap: 4px;
+    /* ホームインジケーター下まで背景を延ばす */
+    box-shadow: 0 100px 0 100px #000a14;
   }
   .nav-btn {
     pointer-events: auto;
@@ -496,14 +499,6 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 let W = 0, H = 0;
 let UI_TOP = 115, UI_BOTTOM = 155;
-
-// iOS Safari の100vh問題を修正
-function fixIOSHeight() {
-  const h = window.innerHeight;
-  document.getElementById('gameContainer').style.height = h + 'px';
-}
-window.addEventListener('resize', fixIOSHeight);
-fixIOSHeight();
 
 // キャンバスサイズ調整
 function resizeCanvas() {
