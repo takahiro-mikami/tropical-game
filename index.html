@@ -23,7 +23,6 @@
     color: #fff;
     margin: 0; padding: 0;
     overscroll-behavior: none;
-    touch-action: none;
   }
   /* ゲーム全体コンテナ */
   #gameContainer {
@@ -136,12 +135,13 @@
   .auto-badge.on { background: #27ae60; }
   /* モーダル */
   .modal {
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(0,0,0,0.7);
     display: none;
     justify-content: center; align-items: center;
-    z-index: 100;
+    z-index: 1000;
     padding: 20px;
+    touch-action: pan-y;
   }
   .modal.show { display: flex; }
   .modal-content {
@@ -151,8 +151,7 @@
     padding: 20px;
     max-width: 500px;
     width: 100%;
-    max-height: 80dvh;
-    max-height: 80vh;
+    max-height: 78dvh;
     overflow-y: scroll;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
@@ -2344,6 +2343,17 @@ document.getElementById('figukuBtn').addEventListener('click', openFiguku);
 document.getElementById('closeFiguku').addEventListener('click', closeFiguku);
 document.getElementById('missionBtn').addEventListener('click', openMissions);
 document.getElementById('closeMission').addEventListener('click', closeMissions);
+
+// モーダル外タップで閉じる
+[
+  { id: 'shopModal',    close: closeShop },
+  { id: 'figukuModal',  close: closeFiguku },
+  { id: 'missionModal', close: closeMissions },
+].forEach(({ id, close }) => {
+  document.getElementById(id).addEventListener('click', e => {
+    if (e.target === document.getElementById(id)) close();
+  });
+});
 document.getElementById('autoFeederToggle').addEventListener('click', () => {
   game.autoSettings.autoFeederEnabled = !game.autoSettings.autoFeederEnabled;
   saveGame();
@@ -2655,8 +2665,10 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// canvasだけスクロール防止（モーダルには影響しない）
+// ゲームエリアのスクロール防止
 canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+document.getElementById('bottomNav').addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+document.getElementById('statusBar').addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 </script>
 </body>
 </html>
