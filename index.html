@@ -22,6 +22,8 @@
     background: #000a14;
     color: #fff;
     margin: 0; padding: 0;
+    overscroll-behavior: none;
+    touch-action: none;
   }
   /* ゲーム全体コンテナ */
   #gameContainer {
@@ -154,6 +156,7 @@
     overflow-y: scroll;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    touch-action: pan-y;
     box-shadow: 0 10px 40px rgba(0,0,0,0.5);
   }
   .modal-content h2 {
@@ -2652,20 +2655,8 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// iOS スタンドアロン時のスクロール防止（スクロール可能な要素内は除外）
-function hasScrollableParent(el) {
-  while (el && el !== document.body) {
-    const style = window.getComputedStyle(el);
-    const oy = style.overflowY;
-    if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight) return true;
-    el = el.parentElement;
-  }
-  return false;
-}
-document.addEventListener('touchmove', e => {
-  if (hasScrollableParent(e.target)) return;
-  e.preventDefault();
-}, { passive: false });
+// canvasだけスクロール防止（モーダルには影響しない）
+canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 </script>
 </body>
 </html>
