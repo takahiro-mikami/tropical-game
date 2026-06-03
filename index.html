@@ -24,7 +24,9 @@
   }
   /* ゲーム全体コンテナ */
   #gameContainer {
-    position: relative; width: 100vw; height: 100vh;
+    position: relative; width: 100vw;
+    height: 100vh;
+    height: 100dvh;
     overflow: hidden;
   }
   /* ===== 上部ステータスバー ===== */
@@ -494,6 +496,14 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 let W = 0, H = 0;
 let UI_TOP = 115, UI_BOTTOM = 155;
+
+// iOS Safari の100vh問題を修正
+function fixIOSHeight() {
+  const h = window.innerHeight;
+  document.getElementById('gameContainer').style.height = h + 'px';
+}
+window.addEventListener('resize', fixIOSHeight);
+fixIOSHeight();
 
 // キャンバスサイズ調整
 function resizeCanvas() {
