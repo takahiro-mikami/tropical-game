@@ -308,7 +308,7 @@
   </div>
 
   <!-- バージョン表示 -->
-  <div id="versionBadge" style="position:fixed;bottom:8px;left:8px;font-size:13px;font-weight:bold;color:#ffd166;background:rgba(0,0,0,0.6);padding:2px 8px;border-radius:8px;z-index:9999;pointer-events:none;">v1.06</div>
+  <div id="versionBadge" style="position:fixed;bottom:8px;left:8px;font-size:13px;font-weight:bold;color:#ffd166;background:rgba(0,0,0,0.6);padding:2px 8px;border-radius:8px;z-index:9999;pointer-events:none;">v1.07</div>
 
   <!-- サウンドボタン -->
   <button id="soundToggle" onclick="toggleSound()" style="position:absolute;top:max(calc(env(safe-area-inset-top,0px) + 10px), 10px);right:10px;z-index:20;background:rgba(0,40,60,0.85);border:1.5px solid #ffd166;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;pointer-events:auto;color:#fff;padding:0;">🔊</button>
@@ -1298,6 +1298,7 @@ function drawEnmaFish(ctx, s, tailWave, type) {
 
 // 神魚
 function drawGodFish(ctx, s, tailWave, type) {
+  const glow = game.fish.length <= 50;
   // 輝きオーラ
   const aura=ctx.createRadialGradient(0,0,s*0.4,0,0,s*2); aura.addColorStop(0,'rgba(255,255,180,0.5)'); aura.addColorStop(1,'rgba(255,255,100,0)');
   ctx.fillStyle=aura; ctx.beginPath(); ctx.arc(0,0,s*2,0,Math.PI*2); ctx.fill();
@@ -1305,14 +1306,17 @@ function drawGodFish(ctx, s, tailWave, type) {
   ctx.strokeStyle='rgba(255,248,150,0.55)'; ctx.lineWidth=s*0.045;
   for(let i=0;i<8;i++){ const a=(i/8)*Math.PI*2+tailWave*0.05; ctx.beginPath(); ctx.moveTo(Math.cos(a)*s*0.8,Math.sin(a)*s*0.6); ctx.lineTo(Math.cos(a)*s*1.8,Math.sin(a)*s*1.4); ctx.stroke(); }
   // 尾ひれ
-  ctx.fillStyle=type.color2; ctx.shadowColor='#ffd700'; ctx.shadowBlur=12;
+  ctx.fillStyle=type.color2;
+  if(glow){ctx.shadowColor='#ffd700'; ctx.shadowBlur=12;}
   ctx.beginPath(); ctx.moveTo(-s*0.7,0); ctx.quadraticCurveTo(-s*1.6,-s*0.8+tailWave*s,-s*1.4,-s*0.4); ctx.quadraticCurveTo(-s*1.8,0,-s*1.4,s*0.4); ctx.quadraticCurveTo(-s*1.6,s*0.8+tailWave*s,-s*0.7,0); ctx.fill(); ctx.shadowBlur=0;
   // 胴体
   const g4=ctx.createRadialGradient(s*0.2,-s*0.2,0,0,0,s*1.2); g4.addColorStop(0,'#ffffff'); g4.addColorStop(0.55,type.color); g4.addColorStop(1,type.color2);
-  ctx.fillStyle=g4; ctx.shadowColor='#ffd700'; ctx.shadowBlur=18;
+  ctx.fillStyle=g4;
+  if(glow){ctx.shadowColor='#ffd700'; ctx.shadowBlur=18;}
   ctx.beginPath(); ctx.ellipse(0,0,s*1.1,s*0.75,0,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
   // 光輪
-  ctx.strokeStyle='#ffd700'; ctx.lineWidth=s*0.1; ctx.shadowColor='#ffd700'; ctx.shadowBlur=10;
+  ctx.strokeStyle='#ffd700'; ctx.lineWidth=s*0.1;
+  if(glow){ctx.shadowColor='#ffd700'; ctx.shadowBlur=10;}
   ctx.beginPath(); ctx.ellipse(s*0.3,-s*1.1,s*0.44,s*0.12,-0.15,0,Math.PI*2); ctx.stroke(); ctx.shadowBlur=0;
 }
 
@@ -1447,40 +1451,23 @@ class Fish {
   draw(ctx) {
     const s = this.size;
     const tailWave = Math.sin(this.tailPhase) * 0.3;
-    const many = game.fish.length > 80;
 
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.scale(this.dir, 1);
 
-    if (many) {
-      // 大量描画時は簡易表示
-      ctx.fillStyle = this.type.color;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, s*1.1, s*0.65, 0, 0, Math.PI*2);
-      ctx.fill();
-      ctx.fillStyle = this.type.color2;
-      ctx.beginPath();
-      ctx.moveTo(-s*0.7, 0);
-      ctx.lineTo(-s*1.3, -s*0.45 + tailWave*s*0.6);
-      ctx.lineTo(-s*1.0, 0);
-      ctx.lineTo(-s*1.3, s*0.45 + tailWave*s*0.6);
-      ctx.closePath();
-      ctx.fill();
-      // 目
-      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(s*0.5,-s*0.12,s*0.2,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(s*0.54,-s*0.12,s*0.1,0,Math.PI*2); ctx.fill();
-    } else {
-      // 通常描画
+    // 影（魚が少ないときだけ）
+    if (game.fish.length <= 30) {
       ctx.fillStyle = 'rgba(0,0,0,0.2)';
       ctx.beginPath();
       ctx.ellipse(2, 4, s*1.2, s*0.5, 0, 0, Math.PI*2);
       ctx.fill();
-      const drawFn = FISH_DRAWERS[this.type.id] || drawGuppy;
-      ctx._skipEye = false;
-      drawFn(ctx, s, tailWave, this.type, this.tailPhase);
-      if (!ctx._skipEye) drawCuteEye(ctx, s);
     }
+
+    const drawFn = FISH_DRAWERS[this.type.id] || drawGuppy;
+    ctx._skipEye = false;
+    drawFn(ctx, s, tailWave, this.type, this.tailPhase);
+    if (!ctx._skipEye) drawCuteEye(ctx, s);
 
     ctx.restore();
 
@@ -1491,7 +1478,7 @@ class Fish {
       ctx.fillRect(this.x - gw/2, this.y - s - 12, gw, 4);
       ctx.fillStyle = '#06ff9d';
       ctx.fillRect(this.x - gw/2, this.y - s - 12, gw * this.growth, 4);
-    } else if (!many) {
+    } else {
       const star = '★';
       ctx.font = 'bold 16px sans-serif';
       ctx.fillStyle = '#ffd166';
